@@ -1,4 +1,4 @@
-# 0003. VLAN segmentation: management / services / security lab
+# 0003. VLAN segmentation by trust zone
 
 - **Status:** Accepted
 - **Date:** 2026-09-29 (written after the fact)
@@ -7,18 +7,24 @@
 A flat network lets any compromised or misbehaving guest reach the hypervisor management interfaces. The lab also runs offensive-security tools (Kali) that must not reach real infrastructure by accident.
 
 ## Decision
-Three VLANs, routed by the Omada gateway:
+Seven VLANs, one per trust zone, routed by the Omada gateway. The subnet is `10.12.<VLAN>.0/24`:
 
-| VLAN | Role |
-|---|---|
-| 5 | Management: hypervisors and core infrastructure (native/untagged on `vmbr0`) |
-| 30 | Services: workloads and tooling |
-| 40 | Security lab: attack VMs and deliberately vulnerable targets |
+| VLAN | Zone | Role |
+|---|---|---|
+| 5 | Management | Hypervisors, DNS, admin hosts (native/untagged on `vmbr0`) |
+| 10 | Internal | Trusted personal devices |
+| 20 | IoT | Smart-home and embedded devices |
+| 30 | Servers | Workloads, dashboards, SIEM |
+| 40 | Security | Attack VMs and deliberately vulnerable targets |
+| 50 | DMZ | Internet-exposed services |
+| 99 | Guest | Visitors, internet only |
+
+The policy is an allow-list with a default-deny between VLANs ([firewall-rules.md](../architecture/firewall-rules.md)).
 
 Guests pick a VLAN with a tag on their virtual NIC. The hosts use one bridge (`vmbr0`) with a single uplink.
 
 ## Consequences
-- ✅ Clear trust zones that map to enterprise patterns (a management network, a server network, a DMZ/lab).
+- ✅ Clear trust zones that map to enterprise patterns: management, user, IoT, server, DMZ, guest, and an isolated lab.
 - ✅ Moving a guest between zones is a one-field change.
-- ❌ Segmentation is only real once the gateway has ACLs between VLANs. Until then VLANs separate broadcast domains but may still route freely. Enforcing and testing the policy is roadmap Phase 1.
+- ❌ Segmentation is only real once the gateway has ACLs between VLANs. Until then VLANs separate broadcast domains but may still route freely. Enforcing and testing the policy is roadmap Phase 2.
 - ❌ Management is the native VLAN, so an untagged guest lands on management by default. New guests must be tagged on purpose.

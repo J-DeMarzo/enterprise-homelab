@@ -4,7 +4,7 @@
 - **Date:** 2026-09-29
 
 ## Context
-`ops`, the admin and automation VM (the future Ansible control node), sat on the Services VLAN (30). The planned segmentation policy ([ADR 0003](0003-vlan-segmentation.md)) blocks Services → Management. That meant the management rule needed a per-host exception for ops: "Services can't reach Management, *except 10.12.30.10*". Per-host exceptions are hard to audit and tend to multiply.
+`ops`, the admin and automation VM (the future Ansible control node), sat on the Servers VLAN (30). The planned segmentation policy ([ADR 0003](0003-vlan-segmentation.md)) blocks Servers → Management. That meant the management rule needed a per-host exception for ops: "Servers can't reach Management, *except 10.12.30.10*". Per-host exceptions are hard to audit and tend to multiply.
 
 Tagging every guest by role ([tag scheme](../architecture/compute.md#tag-scheme)) made this visible. ops is an `admin` host, not a workload.
 

@@ -30,8 +30,9 @@ flowchart TB
     internet((Internet)) --- gw["Omada gateway<br/>ACLs + syslog"]
 
     gw --- mgmt["VLAN 5 · Management<br/>10.12.5.0/24"]
-    gw --- svc["VLAN 30 · Services<br/>10.12.30.0/24"]
-    gw --- lab["VLAN 40 · Security lab<br/>10.12.40.0/24"]
+    gw --- svc["VLAN 30 · Servers<br/>10.12.30.0/24"]
+    gw --- lab["VLAN 40 · Security (attack lab)<br/>10.12.40.0/24"]
+    gw --- other["VLANs 10 · 20 · 50 · 99<br/>Internal · IoT · DMZ · Guest"]
 
     mgmt --- m1["Proxmox hosts<br/>dns1 · dns2 · ops"]
     svc --- s1["Splunk (planned)<br/>homepage"]
@@ -46,7 +47,7 @@ flowchart TB
 | | |
 |---|---|
 | **Hypervisor** | Proxmox VE: 3-node cluster (`TheRising`) + standalone storage node (`Sefi`), 32 threads / ~100 GiB RAM |
-| **Network** | TP-Link Omada gateway. VLANs for management, services, and an isolated security lab |
+| **Network** | TP-Link Omada gateway. 7 VLANs (management, internal, IoT, servers, security lab, DMZ, guest) with a default-deny ACL policy |
 | **SIEM** | Splunk Enterprise: Universal Forwarders, Sysmon, DNS and firewall logs, a homemade alert queue on Splunk Free ([ADR 0006](docs/adr/0006-soc-focus-with-splunk.md)) |
 | **Targets** | Active Directory (Windows Server DC + Windows 11), rebuilt from golden templates |
 | **Core services** | Redundant Technitium DNS (`demarzo.lab`) split across failure domains |

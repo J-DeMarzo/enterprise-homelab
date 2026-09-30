@@ -2,27 +2,36 @@
 
 ## Edge
 
-A **TP-Link Omada** gateway routes between VLANs and to the internet. It has an address in each VLAN (`.1`).
+A **TP-Link Omada** gateway routes between VLANs and to the internet. It has an address in each VLAN (`.1`) and enforces the inter-VLAN policy with gateway ACLs ([firewall-rules.md](firewall-rules.md)).
 
 ## VLAN plan
 
-| VLAN | Name | Subnet | Gateway | Purpose | Tagging on vmbr0 |
-|---|---|---|---|---|---|
-| 5 | Management | 10.12.5.0/24 | 10.12.5.1 | Proxmox hosts, DNS, admin hosts | Untagged (native) |
-| 30 | Services | 10.12.30.0/24 | 10.12.30.1 | Workloads and dashboards | `tag=30` |
-| 40 | Security lab | 10.12.40.0/24 | 10.12.40.1 | Kali and future attack targets | `tag=40` |
+Subnets follow `10.12.<VLAN>.0/24`, so an address tells you its VLAN.
+
+| VLAN | Network | Subnet | Purpose | Trust |
+|---|---|---|---|---|
+| 5 | Management (default) | 10.12.5.0/24 | Proxmox hosts, DNS, admin hosts | Highest. Reaches everything |
+| 10 | Internal | 10.12.10.0/24 | Trusted personal devices | Trusted user devices |
+| 20 | IoT | 10.12.20.0/24 | Smart-home and embedded devices | Untrusted |
+| 30 | Servers | 10.12.30.0/24 | Workloads, dashboards, SIEM (planned) | Service zone |
+| 40 | Security | 10.12.40.0/24 | Attack lab: Kali and deliberately vulnerable targets | **Hostile by design** |
+| 50 | DMZ | 10.12.50.0/24 | Anything exposed to the internet | Untrusted |
+| 99 | Guest | 10.12.99.0/24 | Visitor devices | Internet only |
+
+Proxmox guests use VLANs 5 (untagged, native), 30 (`tag=30`), and 40 (`tag=40`).
 
 ## IP allocation
 
 | Range | Use |
 |---|---|
-| `.1` | Gateway |
+| `.1` | Gateway (every VLAN) |
 | `10.12.5.10` | ops, the admin host (static, set by cloud-init) |
 | `10.12.5.11–.14` | Proxmox nodes (darrow `.11`, sevro `.12`, ragnar `.13`, sefi `.14`) |
 | `10.12.5.53–.54` | DNS (dns1 `.53`, dns2 `.54`), named after port 53 |
+| `10.12.30.20` | Splunk (reserved) |
 | `.100+` | DHCP leases (observed) |
 
-Infrastructure that other things depend on (hypervisors, DNS, ops) gets static addresses. Everything else uses DHCP.
+Infrastructure that other things depend on gets static addresses. Any host named in a firewall IP group must have a static address or a DHCP reservation, otherwise its firewall permissions follow the IP address instead of the host.
 
 ## Host networking
 
@@ -30,12 +39,18 @@ Each Proxmox node has one NIC (`nic0`) bridged to `vmbr0`. Guests pick their VLA
 
 ## Segmentation policy
 
-| From → To | Management | Services | Security lab |
-|---|---|---|---|
-| **Management** | ✅ | ✅ | ✅ |
-| **Services** | ⚠️ DNS only, plus `claude` → Proxmox API until it moves (target) | ✅ | ✅ |
-| **Security lab** | ❌ except DNS :53 to dns1/dns2 (target) | ❌ except Splunk :9997 (target) | ✅ |
+Default deny between VLANs, with explicit allows (Omada evaluates the rules top-down and the first match wins). Management and designated admin terminals reach everything. Other zones get only what they need:
 
-Admin hosts sit *in* the management zone ([ADR 0005](../adr/0005-admin-hosts-in-management-zone.md)), so the management rule doesn't need per-host exceptions for them.
+| From ↓ / To → | Mgmt | Internal | IoT | Servers | Security | DMZ | Guest |
+|---|---|---|---|---|---|---|---|
+| **Management** | – | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Internal** | DNS | – | ❓ | ✅ | ❌ | ❌ | ❌ |
+| **IoT** | DNS | ❌ | – | ❌ | ❌ | ❌ | ❌ |
+| **Servers** | DNS, NFS, Proxmox API (listed hosts) | ❌ | ❌ | – | ❌ | ❌ | ❌ |
+| **Security** | DNS | ❌ | ❌ | SIEM :9997 only | – | ❌ | ❌ |
+| **DMZ** | DNS | ❌ | ❌ | ❌ | ❌ | – | ❌ |
+| **Guest** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | – |
 
-Rows marked *(target)* are the intended policy. The Omada ACLs that enforce the security-lab row, and the baseline test showing the lab is **not** isolated yet, are in [firewall-rules.md](firewall-rules.md).
+Admin terminals (an IP group) have full access, like Management. ❓ = open decision (see [firewall-rules.md](firewall-rules.md#open-decisions)).
+
+**This is the intended policy. It is not enforced yet:** the default-deny rule is currently disabled. Rules, IP groups, and the before/after tests are in [firewall-rules.md](firewall-rules.md).

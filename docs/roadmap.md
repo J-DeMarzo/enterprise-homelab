@@ -16,7 +16,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
 
 ## Phase 2: Safe to attack
-- [ ] **Isolate VLAN 40** with Omada ACLs ([rule set and test plan](architecture/firewall-rules.md)). *Evidence:* the before/after test table. The baseline showed the lab could reach the Proxmox UIs, SSH, and the admin consoles
+- [ ] **Enforce default-deny between VLANs**: correct the IP groups, limit the DNS rule to port 53, enable rule 9 ([rules, groups, and test plan](architecture/firewall-rules.md)). *Evidence:* the before/after test table. The baseline showed the Security VLAN could reach the Proxmox UIs, SSH, and the admin consoles
 
 ## Phase 3: Visibility (SIEM)
 | Item | Placement | Evidence to finish it |
