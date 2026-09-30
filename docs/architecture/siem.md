@@ -1,6 +1,6 @@
 # SIEM (Splunk)
 
-**Status:** designed 2026-09-30, deployment in progress ([roadmap Phase 3](../roadmap.md)). Decisions: [ADR 0006](../adr/0006-soc-focus-with-splunk.md) (why Splunk) and [ADR 0007](../adr/0007-splunk-topology-and-household-data.md) (topology and household data).
+**Status:** Splunk 10.4.4 running since 2026-09-30 (trial). Onboarding of data sources in progress ([roadmap Phase 3](../roadmap.md)). Decisions: [ADR 0006](../adr/0006-soc-focus-with-splunk.md) (why Splunk) and [ADR 0007](../adr/0007-splunk-topology-and-household-data.md) (topology and household data).
 
 ## Design
 One Splunk Enterprise instance in the **Servers** zone (`splunk`, VMID 210, 10.12.30.20, on darrow; 4 vCPU / 8 GiB / 150 GiB) sees all seven VLANs through three layers:

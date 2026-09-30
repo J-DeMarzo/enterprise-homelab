@@ -1,6 +1,6 @@
 # Firewall rules (Omada gateway ACLs)
 
-**Status:** default-deny between VLANs is **enforced** as of 2026-09-30. **All 21 executed tests pass.** Two more (T11/T12) are pending the Splunk deployment.
+**Status:** default-deny between VLANs is **enforced** as of 2026-09-30. **All 28 executed tests pass.** T25 needs a non-admin Internal device.
 
 ## Design
 An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs top-down and the first match wins. Rules 1–9 permit specific flows, rule 10 isolates Guest, rule 11 blocks the gateway's own admin UI, and rule 12 denies everything else between VLANs. Management isn't in the deny rules' source lists, so it keeps full reach. The policy matrix is in [network.md](network.md#segmentation-policy).
@@ -64,8 +64,8 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | T8 | ops → kali (temporary listener) | 8080 | ✅ | n/a | HTTP 200. **Proves the ACLs are stateful** | ✅ |
 | T9 | kali → homepage (Servers) | 3000 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
 | T10 | kali → internet | 443 | ✅ | OPEN | OPEN | ✅ |
-| T11 | kali → Splunk forwarding | 9997 | ✅ | n/a | *Pending Splunk deployment* | – |
-| T12 | kali → Splunk web UI | 8000 | ❌ | n/a | *Pending Splunk deployment* | – |
+| T11 | kali → Splunk forwarding | 9997 | ✅ | n/a | OPEN (rule 8) | ✅ |
+| T12 | kali → Splunk web UI, mgmt API, SSH, PostgreSQL | 8000, 8089, 22, 5432 | ❌ | n/a | BLOCKED (rule 12 + ufw) | ✅ |
 | T13 | claude → Proxmox API (darrow, sefi) | 8006 | ✅ | OPEN | OPEN | ✅ |
 | T14 | claude → darrow SSH | 22 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
 | T15 | claude → dns1 admin UI | 5380 | ❌ | n/a | BLOCKED | ✅ |
@@ -78,6 +78,12 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | T22 | kali → Omada controller (10.12.5.2) | 443 | ❌ | n/a | BLOCKED | ✅ |
 | T23 | claude → gateway UI (10.12.30.1, 10.12.5.1) | 443 | ❌ | n/a | BLOCKED | ✅ |
 | T24 | kali and claude → internet and DNS, after rule 11 (regression check for the TCP-only choice) | 443, 53 | ✅ | OPEN | OPEN | ✅ |
+| T25 | Internal device that **isn't** the admin desktop → Splunk web UI | 8000 | ❌ | n/a | *Pending: owner tests from a phone/laptop* | – |
+| T26 | ops (Mgmt) → Splunk web UI | 8000 | ✅ | n/a | OPEN (redirects to login) | ✅ |
+| T27 | ops (Mgmt) → Splunk forwarding | 9997 | ✅ | n/a | OPEN | ✅ |
+| T28 | claude (Servers) → Splunk web UI | 8000 | ❌ | n/a | BLOCKED (ufw: Servers isn't an admin zone) | ✅ |
+| T29 | claude (Servers) → Splunk forwarding | 9997 | ✅ | n/a | OPEN | ✅ |
+| T30 | claude (Servers) → Splunk mgmt API | 8089 | ❌ | n/a | BLOCKED (ufw) | ✅ |
 
 Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, where I can't run tests.
 
@@ -89,6 +95,6 @@ Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, whe
 | New test **T25**: Internal (non-admin) → Splunk :8000 must be blocked | Rule 3 permits Internal → Servers, so the host firewall (ufw) on `splunk` does the blocking |
 
 ## Open items
-- **T11/T12** once Splunk is deployed at 10.12.30.20.
+- **T25** from a non-admin Internal device (phone/laptop).
 - **Dashboard credentials:** rule 9 makes homepage a pivot point. It stores API credentials for Proxmox, Omada, and Technitium and can reach all three. Move it to read-only credentials (Proxmox `PVEAuditor` token, Omada viewer, read-only Technitium user).
 - **Log injection:** Security can send to Splunk :9997, so a compromised lab host could forge log events. Accepted for the lab. Future hardening: forwarder TLS with client certificates.

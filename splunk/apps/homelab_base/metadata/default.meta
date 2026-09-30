@@ -1,0 +1,6 @@
+# Share everything in this app (lookups, sourcetypes, transforms) with all apps,
+# so searches in the Search app can use vlan_zones and the sourcetypes.
+# Without this, app objects are private to homelab_base and lookups silently return nothing.
+[]
+access = read : [ * ], write : [ admin ]
+export = system
