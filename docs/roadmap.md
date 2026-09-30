@@ -12,6 +12,8 @@ An item is checked off only when its **evidence** exists (a test, a screenshot, 
 ## Phase 1: Hygiene
 - [ ] DNS: records for `ops`, `homepage`, `gw`. Fix the NS records to list `dns1.demarzo.lab` + `dns2.demarzo.lab`. Document how dns2 syncs
 - [ ] Guest metadata: description (owner/role/VLAN) and tags on every guest
+  - [x] Notes cards on all 8 guests, following the [guest notes standard](architecture/compute.md#guest-notes-standard)
+  - [ ] Consistent tag scheme (role / VLAN) on every guest
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
 - [ ] Omada ACLs enforcing the [segmentation policy](architecture/network.md#segmentation-policy). *Evidence:* blocked and allowed connection tests from each VLAN
 

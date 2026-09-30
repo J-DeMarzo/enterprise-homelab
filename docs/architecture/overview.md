@@ -27,7 +27,7 @@ See the generated [inventory](../inventory.md). In short:
 | Guest | Role | Where |
 |---|---|---|
 | dns1 / dns2 | Internal DNS (Technitium) | sevro / sefi |
-| ops | Operations and automation VM (cloud-init, Ubuntu). Planned Ansible control node | sefi |
+| ops | Operations and automation VM (cloud-init). Planned Ansible control node | sefi |
 | homepage | Lab dashboard | ragnar |
 | claude | AI assistant workstation for lab operations | ragnar |
 | kali / Kali-Master | Offensive-security VM and its golden template | sevro / darrow |

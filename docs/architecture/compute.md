@@ -31,3 +31,24 @@ A lower-power node that is mainly the storage server (see [storage.md](storage.m
 | Templates | Golden images (e.g. `Kali-Master`, VMID 9000) on shared NFS so any node can clone them |
 | Snapshots | Taken before risky changes. The lab VM `kali` keeps a `Clean` baseline snapshot |
 | Critical guests | `onboot=1`; dns1 also has deletion protection enabled |
+| Notes | Every guest has a Markdown **Notes** card in the Proxmox UI (see below) |
+
+## Guest notes standard
+
+Every guest's Notes field (the `description` config key) follows the same layout, so anyone opening a guest in the Proxmox UI sees what it is, who owns it, and where it's documented:
+
+```markdown
+### <name> · <short role>
+
+| | |
+|---|---|
+| **Role** | What it does |
+| **Service** | Software, and its URL if it has one |
+| **Network** | VLAN n (Name) · IP static/DHCP |
+| **Protection** | Start on boot · deletion protection (if set) |
+| **Owner** | demarzo |
+
+Docs: <link to the relevant page in this repo>
+```
+
+Include only the rows that apply. Templates also get a clone command, and lab VMs get their scope and reset procedure.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate docs/inventory.md from the Proxmox API.
 
-Reads Proxmox targets and read-only API tokens from the proxmox-mcp config
+Reads Proxmox targets and API tokens from the proxmox-mcp config
 (default: $PROXMOX_MCP_CONFIG or ~/.config/proxmox-mcp/config.json), which
 lives outside this repo so no credentials are ever committed.
 
