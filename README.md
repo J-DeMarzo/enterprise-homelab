@@ -1,4 +1,4 @@
-# The Kennel 🐕
+# Enterprise Homelab
 
 A homelab built to run like a small enterprise environment, sized so one person can keep it running at home.
 
