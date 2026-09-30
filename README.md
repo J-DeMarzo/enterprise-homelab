@@ -21,6 +21,7 @@ flowchart LR
 | Investigations (case write-ups) | [`docs/investigations/`](docs/investigations/) |
 | SPL detections, each tested against an emulated attack | [`detections/`](detections/) |
 | Lab isolation rules, with before/after test results | [`docs/architecture/firewall-rules.md`](docs/architecture/firewall-rules.md) |
+| SIEM design and config as code | [`docs/architecture/siem.md`](docs/architecture/siem.md) · [`splunk/`](splunk/) |
 | Design decisions | [`docs/adr/`](docs/adr/) |
 
 ## Architecture
@@ -87,6 +88,7 @@ docs/
   inventory.md     generated from the Proxmox API
   roadmap.md
 detections/        SPL detections
+splunk/            Splunk config as code (indexes, zone lookup, forwarder inputs)
 scripts/           inventory generator
 ```
 

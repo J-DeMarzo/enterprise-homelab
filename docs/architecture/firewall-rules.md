@@ -81,6 +81,13 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 
 Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, where I can't run tests.
 
+## Planned changes (Splunk, roadmap Phase 3)
+| Change | Reason |
+|---|---|
+| Rule 8 "Sec → SIEM": add **DMZ** to its source | `dmz-edge` forwarder → 10.12.30.20:9997. A single documented exception to DMZ isolation ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)) |
+| Gateway → 10.12.30.20:514 (syslog) | Probably not filtered by LAN → LAN rules because it's gateway-originated. Test it, and add a narrow permit only if it's blocked |
+| New test **T25**: Internal (non-admin) → Splunk :8000 must be blocked | Rule 3 permits Internal → Servers, so the host firewall (ufw) on `splunk` does the blocking |
+
 ## Open items
 - **T11/T12** once Splunk is deployed at 10.12.30.20.
 - **Dashboard credentials:** rule 9 makes homepage a pivot point. It stores API credentials for Proxmox, Omada, and Technitium and can reach all three. Move it to read-only credentials (Proxmox `PVEAuditor` token, Omada viewer, read-only Technitium user).

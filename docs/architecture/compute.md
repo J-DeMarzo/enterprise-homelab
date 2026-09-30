@@ -48,7 +48,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | `template` | Golden images, never run directly | Clone, don't modify |
 | `desktop` | Interactive workstations | |
 
-**Zone: which VLAN it lives on:** `net-mgmt` (5), `net-svc` (30), `net-lab` (40)
+**Zone: which VLAN it lives on:** `net-mgmt` (5), `net-svc` (30), `net-lab` (40), `net-dmz` (50)
 
 | Guest | Role | Zone |
 |---|---|---|
@@ -56,6 +56,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | ops | `admin` | `net-mgmt` |
 | claude | `admin` | `net-svc` |
 | homepage | `app` | `net-svc` |
+| dmz-edge | `app` | `net-dmz` *(to apply)* |
 | kali, Kali-Master | `lab` | `net-lab` |
 | ubuntu-2404-ci (9001) | `template` | `net-svc` (default for clones) |
 | Omarchy | `desktop` | `net-svc` |

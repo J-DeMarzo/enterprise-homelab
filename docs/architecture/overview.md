@@ -29,6 +29,7 @@ See the generated [inventory](../inventory.md). In short:
 | dns1 / dns2 | Internal DNS (Technitium) | sevro / sefi |
 | ops | Headless admin jump box (Ubuntu 24.04, rebuilt 2026-09-30). Ansible/Terraform control node when that resumes ([ADR 0006](../adr/0006-soc-focus-with-splunk.md)) | sefi |
 | ubuntu-2404-ci | Golden Ubuntu template (9001) for Splunk and future VMs | sevro (disk on pax) |
+| dmz-edge | Internet-facing edge in the DMZ: Caddy + cloudflared (Cloudflare Tunnel) for demarzo.dev | sefi |
 | homepage | Lab dashboard | ragnar |
 | claude | AI assistant workstation for lab operations | ragnar |
 | kali / Kali-Master | Offensive-security VM and its golden template | sevro / darrow |

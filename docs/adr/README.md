@@ -12,6 +12,7 @@ ADRs 0001–0004 were written after the fact, describing decisions already in pl
 | [0004](0004-nfs-for-shared-media-local-zfs-for-guests.md) | NFS for shared media, local ZFS for guest disks | Accepted |
 | [0005](0005-admin-hosts-in-management-zone.md) | Admin hosts live in the management zone | Accepted |
 | [0006](0006-soc-focus-with-splunk.md) | Focus on SOC work, with Splunk as the SIEM | Accepted |
+| [0007](0007-splunk-topology-and-household-data.md) | Splunk topology: one indexer, chokepoint-first, household data minimization | Accepted |
 
 ## Template
 

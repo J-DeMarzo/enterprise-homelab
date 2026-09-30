@@ -23,14 +23,19 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [ ] Read-only credentials for homepage's widgets (Proxmox `PVEAuditor`, Omada viewer, Technitium read-only). Homepage can reach management APIs through rule 9
 
 ## Phase 3: Visibility (SIEM)
+Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-and-household-data.md) · config in [`splunk/`](../splunk/)
+
 | Item | Placement | Evidence to finish it |
 |---|---|---|
-| [ ] **Splunk Enterprise** (60-day trial → Free), VM at 10.12.30.20 | darrow · 4 vCPU / 8 GiB / ~150 GiB | Web UI reachable from management only (firewall test T12) |
-| [ ] Indexes and data onboarding: `linux`, `wineventlog`, `sysmon`, `dns`, `network` | – | Each source searchable with correct sourcetypes |
-| [ ] Universal Forwarder on Linux guests and the Proxmox hosts | – | Auth logs from each host in Splunk |
-| [ ] **Technitium DNS query logs** → Splunk | dns1, dns2 | Queries from kali visible by client IP |
-| [ ] **Omada firewall syslog** → Splunk | gateway | ACL-deny events visible (the Phase 2 tests will generate them) |
-| [ ] **Alert queue**: scheduled detections → `soc_alerts` summary index → triage dashboard | – | A test detection shows up in the queue |
+| [ ] **Splunk Enterprise** (60-day trial → Free), VM `splunk` at 10.12.30.20, cloned from template 9001 | darrow · 4 vCPU / 8 GiB / 150 GiB | Firewall tests T11 ✅, T12 ❌, T25 ❌ (ufw blocks the web UI from non-admin Internal devices) |
+| [ ] Indexes, zone lookup, rsyslog intake (`homelab_base` app) | splunk | Every source in the right index. Zone lookup resolves one IP per VLAN |
+| [ ] **Omada** remote syslog: ACL denies, DHCP, client events for all 7 VLANs | gateway, controller | A kali → Management probe shows up as a deny event in `netfw` |
+| [ ] **Technitium** query logs with the household privacy filter | dns1, dns2 | IoT/lab queries indexed. An Internal NOERROR test query **not** indexed, an NXDOMAIN one **is** |
+| [ ] Universal Forwarders: dns1/2, ops, homepage, claude, Proxmox hosts | – | Auth/journald from each host in `linux` |
+| [ ] **dmz-edge** forwarder: Caddy + cloudflared → `web` (rule 8 gets DMZ as a source) | dmz-edge | Real internet requests to demarzo.dev searchable, with the client IP taken from `Cf-Connecting-Ip` |
+| [ ] Zone overview dashboard (deny matrix, DNS by zone, new DHCP devices) | – | Screenshot (aggregates only) |
+| [ ] **Alert queue** + first detections (new device on Management, denied probes toward Management, new IoT domain, DNS tunneling, web probing) | – | Each detection fired by a test |
+| [ ] License check after 7 days | – | Measured MB/day per source vs. the budget in siem.md |
 
 ## Phase 4: Something worth defending
 | Item | Placement | Evidence to finish it |

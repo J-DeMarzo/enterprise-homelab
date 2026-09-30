@@ -29,7 +29,8 @@ Proxmox guests use VLANs 5 (untagged, native), 30 (`tag=30`), and 40 (`tag=40`).
 | `10.12.5.10` | ops, the admin host (static, set by cloud-init) |
 | `10.12.5.11–.14` | Proxmox nodes (darrow `.11`, sevro `.12`, ragnar `.13`, sefi `.14`) |
 | `10.12.5.53–.54` | DNS (dns1 `.53`, dns2 `.54`), named after port 53 |
-| `10.12.30.20` | Splunk (reserved) |
+| `10.12.30.20` | splunk (SIEM, reserved) |
+| `10.12.50.10` | dmz-edge (Caddy + cloudflared for demarzo.dev) |
 | `.100+` | DHCP leases (observed) |
 
 Infrastructure that other things depend on gets static addresses. Any host named in a firewall IP group must have a static address or a DHCP reservation, otherwise its firewall permissions follow the IP address instead of the host.

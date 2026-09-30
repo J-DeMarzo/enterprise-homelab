@@ -1,0 +1,8 @@
+cidr,zone,vlan,trust
+10.12.5.0/24,management,5,high
+10.12.10.0/24,internal,10,trusted
+10.12.20.0/24,iot,20,untrusted
+10.12.30.0/24,servers,30,service
+10.12.40.0/24,security,40,hostile
+10.12.50.0/24,dmz,50,untrusted
+10.12.99.0/24,guest,99,untrusted

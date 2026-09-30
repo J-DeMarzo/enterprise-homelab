@@ -22,6 +22,7 @@
 | 301 | claude | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.101 (dhcp) | admin, net-svc |
 | 400 | dns2 | LXC | Sefi/sefi | running | 1 | 512 MiB | 5 | 10.12.5.54 | infra, net-mgmt |
 | 450 | ops | VM | Sefi/sefi | running | 2 | 4 GiB | 5 | 10.12.5.10 | admin, net-mgmt |
+| 500 | dmz-edge | LXC | Sefi/sefi | running | 1 | 512 MiB | 50 | 10.12.50.10 | - |
 | 9000 | Kali-Master | template | TheRising/darrow | stopped | 4 | 4 GiB | 40 | dhcp | lab, net-lab |
 | 9001 | ubuntu-2404-ci | template | TheRising/sevro | stopped | 2 | 2 GiB | 30 | dhcp | net-svc, template |
 
