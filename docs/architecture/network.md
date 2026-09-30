@@ -51,6 +51,6 @@ Default deny between VLANs, with explicit allows (Omada evaluates the rules top-
 | **DMZ** | DNS | ❌ | ❌ | ❌ | ❌ | – | ❌ |
 | **Guest** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | – |
 
-Admin terminals (an IP group) have full access, like Management. ❓ = open decision (see [firewall-rules.md](firewall-rules.md#open-decisions)).
+Admin terminals (an IP group) have full access, like Management. ❓ = optional rule 4 (Internal → IoT), see [firewall-rules.md](firewall-rules.md#rules-gateway-acl-lan--lan).
 
 **Enforced since 2026-09-30.** Rules, IP groups, and the before/after test results are in [firewall-rules.md](firewall-rules.md).
