@@ -66,6 +66,18 @@ Run [`splunk/server/ufw-rules.sh`](../../splunk/server/ufw-rules.sh) as root. De
 
 Splunk 10 also listens on **0.0.0.0:5432** (bundled PostgreSQL) and 8089. Both stay closed to the network.
 
+## 6b. Universal Forwarders
+Installer: [`splunk/forwarder/install-uf.sh`](../../splunk/forwarder/install-uf.sh). It downloads UF 10.4.4, verifies the SHA-512, and installs it with a random root-only admin credential. Roles: `linux` (journald → `linux`), `technitium` (query logs → `dns`). Run it from a URL **pinned to a commit** so the script can't change under you:
+```bash
+# VM (e.g. ops), as root:
+curl -fsSL https://raw.githubusercontent.com/J-DeMarzo/enterprise-homelab/<commit>/splunk/forwarder/install-uf.sh | bash -s -- linux
+# LXC, from its Proxmox host:
+pct exec <vmid> -- bash -c "curl -fsSL <same URL> | bash -s -- linux technitium"
+```
+> ⚠️ **Lessons from the first install (ops):** (1) never run the `splunk` binary as root before `enable boot-start`, because it drops to `splunkfwd` and trips over root-owned dirs; (2) a manual `splunk start` + `splunk stop` hung with the journald input active, so let `enable boot-start` and systemd handle it; (3) the QEMU guest agent kills commands after 60 s, so run long installs over SSH or `pct exec`, not the guest agent.
+
+Verify: `| tstats count where index=linux by host`, plus a `logger` test message showing up within seconds.
+
 ## 7. Verify
 - `server/info`: version and `activeLicenseGroup = Trial`
 - `| rest /services/data/indexes`: the 7 lab indexes with the expected retention

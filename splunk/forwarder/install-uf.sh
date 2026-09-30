@@ -74,17 +74,18 @@ EOF
 done
 chown -R "$USER_UF:$USER_UF" $UF/etc/apps/homelab_uf $UF/etc/system/local
 
-# 4. First start AS the forwarder user, then systemd boot-start.
-# Never run the splunk binary as root before this: recent packages run as
-# splunkfwd, and a root first run leaves root-owned var/ dirs ("First-time run failed!").
+# 4. systemd service. Lessons from the first install (ops, 2026-09-30):
+#  - The splunk binary drops to the package user (splunkfwd). Any earlier root run
+#    leaves root-owned var/ dirs -> "First-time run failed!". So chown everything first.
+#  - Don't "splunk start" then "splunk stop" by hand: the CLI stop hung with the
+#    journald input running. enable boot-start does the first-time setup itself,
+#    and systemd stops splunkd with SIGTERM cleanly.
 chown -R "$USER_UF:$USER_UF" $UF
-if ! systemctl list-unit-files SplunkForwarder.service >/dev/null 2>&1 || ! systemctl cat SplunkForwarder.service >/dev/null 2>&1; then
-  su -s /bin/bash "$USER_UF" -c "$UF/bin/splunk start --accept-license --answer-yes --no-prompt" >/dev/null
-  su -s /bin/bash "$USER_UF" -c "$UF/bin/splunk stop" >/dev/null
-  $UF/bin/splunk enable boot-start -user "$USER_UF" -systemd-managed 1 --accept-license --answer-yes --no-prompt >/dev/null
+if ! systemctl cat SplunkForwarder.service >/dev/null 2>&1; then
+  $UF/bin/splunk enable boot-start -user "$USER_UF" -systemd-managed 1 --accept-license --answer-yes --no-prompt 2>&1 | grep -v site-packages || true
 fi
 systemctl daemon-reload
-systemctl enable --now SplunkForwarder >/dev/null
+systemctl enable --now SplunkForwarder >/dev/null 2>&1
 systemctl restart SplunkForwarder
 sleep 5
 log "service: $(systemctl is-active SplunkForwarder) | roles: ${ROLES[*]} | indexer: $INDEXER"
