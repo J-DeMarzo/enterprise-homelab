@@ -25,6 +25,7 @@ Proxmox guests use VLANs 5 (untagged, native), 30 (`tag=30`), and 40 (`tag=40`).
 | Range | Use |
 |---|---|
 | `.1` | Gateway (every VLAN) |
+| `10.12.5.2` | Omada controller |
 | `10.12.5.10` | ops, the admin host (static, set by cloud-init) |
 | `10.12.5.11–.14` | Proxmox nodes (darrow `.11`, sevro `.12`, ragnar `.13`, sefi `.14`) |
 | `10.12.5.53–.54` | DNS (dns1 `.53`, dns2 `.54`), named after port 53 |
@@ -46,7 +47,7 @@ Default deny between VLANs, with explicit allows (Omada evaluates the rules top-
 | **Management** | – | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Internal** | DNS | – | ❓ | ✅ | ❌ | ❌ | ❌ |
 | **IoT** | DNS | ❌ | – | ❌ | ❌ | ❌ | ❌ |
-| **Servers** | DNS, NFS, Proxmox API (listed hosts) | ❌ | ❌ | – | ❌ | ❌ | ❌ |
+| **Servers** | DNS, NFS, Proxmox API and dashboard APIs (listed hosts only) | ❌ | ❌ | – | ❌ | ❌ | ❌ |
 | **Security** | DNS | ❌ | ❌ | SIEM :9997 only | – | ❌ | ❌ |
 | **DMZ** | DNS | ❌ | ❌ | ❌ | ❌ | – | ❌ |
 | **Guest** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | – |

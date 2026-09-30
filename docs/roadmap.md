@@ -20,6 +20,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 ## Phase 2: Safe to attack
 - [x] **Enforce default-deny between VLANs**: IP groups corrected, DNS rule limited to port 53, default-deny enabled. *Evidence:* [before/after test table](architecture/firewall-rules.md#test-results). 16/18 pass, and the ACLs are verified stateful
 - [ ] Restrict the gateway's admin UI to Management (tests T6/T7 still open from the Security VLAN)
+- [ ] Read-only credentials for homepage's widgets (Proxmox `PVEAuditor`, Omada viewer, Technitium read-only). Homepage can reach management APIs through rule 9
 
 ## Phase 3: Visibility (SIEM)
 | Item | Placement | Evidence to finish it |
