@@ -14,6 +14,8 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [x] Move `ops` to the management VLAN ([ADR 0005](adr/0005-admin-hosts-in-management-zone.md)). *Evidence:* change record and connectivity checks in the ADR
 - [ ] DNS: records for `ops`, `homepage`, `gw`, `splunk`. Fix the NS records. Document how dns2 syncs
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
+- [ ] **Least-privilege API token** for `claude-mcp@pve`: it currently holds near-admin rights (can create users, allocate SDN, and so on). Replace it with a custom role scoped to VM, storage, and guest-agent operations. Record the change as an ADR
+- [ ] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB) from a verified cloud image. Build a golden cloud-init template (VMID 9001) on TheRising for Splunk and future VMs. Runbook
 
 ## Phase 2: Safe to attack
 - [ ] **Enforce default-deny between VLANs**: correct the IP groups, limit the DNS rule to port 53, enable rule 9 ([rules, groups, and test plan](architecture/firewall-rules.md)). *Evidence:* the before/after test table. The baseline showed the Security VLAN could reach the Proxmox UIs, SSH, and the admin consoles
