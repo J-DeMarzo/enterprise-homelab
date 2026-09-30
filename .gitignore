@@ -1,0 +1,19 @@
+# Secrets: never commit these
+.env
+.env.*
+*.key
+*.pem
+secrets/
+*vault*.yml
+!*vault*.example.yml
+
+# Terraform state (contains secrets)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Local tooling
+.claude/settings.local.json
+__pycache__/
+*.pyc
+.venv/
