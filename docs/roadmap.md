@@ -27,7 +27,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 
 | Item | Placement | Evidence to finish it |
 |---|---|---|
-| [ ] **Splunk Enterprise** (60-day trial → Free), VM `splunk` at 10.12.30.20, cloned from template 9001 | darrow · 4 vCPU / 8 GiB / 150 GiB | Firewall tests T11 ✅, T12 ❌, T25 ❌ (ufw blocks the web UI from non-admin Internal devices) |
+| [ ] **Splunk Enterprise** (60-day trial → Free), VM `splunk` at 10.12.30.20, cloned from template 9001. *VM built 2026-09-30 (VMID 210); Splunk install pending* | darrow · 4 vCPU / 8 GiB / 150 GiB | Firewall tests T11 ✅, T12 ❌, T25 ❌ (ufw blocks the web UI from non-admin Internal devices) |
 | [ ] Indexes, zone lookup, rsyslog intake (`homelab_base` app) | splunk | Every source in the right index. Zone lookup resolves one IP per VLAN |
 | [ ] **Omada** remote syslog: ACL denies, DHCP, client events for all 7 VLANs | gateway, controller | A kali → Management probe shows up as a deny event in `netfw` |
 | [ ] **Technitium** query logs with the household privacy filter | dns1, dns2 | IoT/lab queries indexed. An Internal NOERROR test query **not** indexed, an NXDOMAIN one **is** |

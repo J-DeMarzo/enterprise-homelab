@@ -17,12 +17,13 @@
 |---|---|---|---|---|---|---|---|---|---|
 | 150 | Omarchy | VM | TheRising/darrow | stopped | 4 | 8 GiB | 30 | dhcp | desktop, net-svc |
 | 200 | dns1 | LXC | TheRising/sevro | running | 1 | 512 MiB | 5 | 10.12.5.53 | infra, net-mgmt |
+| 210 | splunk | VM | TheRising/darrow | running | 4 | 8 GiB | 30 | 10.12.30.20 | infra, net-svc |
 | 250 | kali | VM | TheRising/sevro | running | 4 | 4 GiB | 40 | 10.12.40.101 (dhcp) | lab, net-lab |
 | 300 | homepage | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.100 (dhcp) | app, net-svc |
 | 301 | claude | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.101 (dhcp) | admin, net-svc |
 | 400 | dns2 | LXC | Sefi/sefi | running | 1 | 512 MiB | 5 | 10.12.5.54 | infra, net-mgmt |
 | 450 | ops | VM | Sefi/sefi | running | 2 | 4 GiB | 5 | 10.12.5.10 | admin, net-mgmt |
-| 500 | dmz-edge | LXC | Sefi/sefi | running | 1 | 512 MiB | 50 | 10.12.50.10 | - |
+| 500 | dmz-edge | LXC | Sefi/sefi | running | 1 | 512 MiB | 50 | 10.12.50.10 | app, net-dmz |
 | 9000 | Kali-Master | template | TheRising/darrow | stopped | 4 | 4 GiB | 40 | dhcp | lab, net-lab |
 | 9001 | ubuntu-2404-ci | template | TheRising/sevro | stopped | 2 | 2 GiB | 30 | dhcp | net-svc, template |
 
@@ -39,6 +40,6 @@
 | TheRising | Snippets | nfs | shared | 51 GiB | 5456 GiB |
 | TheRising | Templates | nfs | shared | 51 GiB | 5456 GiB |
 | TheRising | VM-Templates | nfs | shared | 51 GiB | 5456 GiB |
-| TheRising | fast-local | zfspool | darrow | 89 GiB | 899 GiB |
+| TheRising | fast-local | zfspool | darrow | 241 GiB | 899 GiB |
 | TheRising | fast-local | zfspool | ragnar | 7 GiB | 450 GiB |
 | TheRising | fast-local | zfspool | sevro | 66 GiB | 450 GiB |

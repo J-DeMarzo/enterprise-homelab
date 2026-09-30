@@ -56,7 +56,8 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | ops | `admin` | `net-mgmt` |
 | claude | `admin` | `net-svc` |
 | homepage | `app` | `net-svc` |
-| dmz-edge | `app` | `net-dmz` *(to apply)* |
+| dmz-edge | `app` | `net-dmz` |
+| splunk | `infra` | `net-svc` |
 | kali, Kali-Master | `lab` | `net-lab` |
 | ubuntu-2404-ci (9001) | `template` | `net-svc` (default for clones) |
 | Omarchy | `desktop` | `net-svc` |

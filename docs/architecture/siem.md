@@ -3,7 +3,7 @@
 **Status:** designed 2026-09-30, deployment in progress ([roadmap Phase 3](../roadmap.md)). Decisions: [ADR 0006](../adr/0006-soc-focus-with-splunk.md) (why Splunk) and [ADR 0007](../adr/0007-splunk-topology-and-household-data.md) (topology and household data).
 
 ## Design
-One Splunk Enterprise instance in the **Servers** zone (`splunk`, 10.12.30.20, on darrow) sees all seven VLANs through three layers:
+One Splunk Enterprise instance in the **Servers** zone (`splunk`, VMID 210, 10.12.30.20, on darrow; 4 vCPU / 8 GiB / 150 GiB) sees all seven VLANs through three layers:
 
 1. **Chokepoint logs** that already observe every zone: the **Omada** gateway/controller (ACL denies, DHCP leases, client events) and **Technitium DNS** (queries from every zone that uses it).
 2. **Universal Forwarders** only on hosts the lab owns: infrastructure, the Security lab, and the DMZ.
