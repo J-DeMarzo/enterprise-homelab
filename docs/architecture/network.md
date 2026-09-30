@@ -34,8 +34,8 @@ Each Proxmox node has one NIC (`nic0`) bridged to `vmbr0`. Guests pick their VLA
 |---|---|---|---|
 | **Management** | ✅ | ✅ | ✅ |
 | **Services** | ⚠️ DNS only, plus `claude` → Proxmox API until it moves (target) | ✅ | ✅ |
-| **Security lab** | ❌ (target) | ⚠️ in-scope targets only (target) | ✅ |
+| **Security lab** | ❌ except DNS :53 to dns1/dns2 (target) | ❌ except Splunk :9997 (target) | ✅ |
 
 Admin hosts sit *in* the management zone ([ADR 0005](../adr/0005-admin-hosts-in-management-zone.md)), so the management rule doesn't need per-host exceptions for them.
 
-Rows marked *(target)* are the intended policy. The Omada ACLs that enforce it are part of [roadmap Phase 1](../roadmap.md) and will be documented here once they're configured and verified.
+Rows marked *(target)* are the intended policy. The Omada ACLs that enforce the security-lab row, and the baseline test showing the lab is **not** isolated yet, are in [firewall-rules.md](firewall-rules.md).

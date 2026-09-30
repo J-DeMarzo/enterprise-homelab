@@ -1,79 +1,93 @@
 # Enterprise Homelab
 
-A homelab built to run like a small enterprise environment, sized so one person can keep it running at home.
+A homelab built as a **small enterprise SOC environment**: segmented networks, an Active Directory target estate, Splunk as the SIEM, and an isolated attack VLAN. It exists to practice and demonstrate security operations: emulate an attack, detect it, investigate it, write it up.
 
-This repo is the documentation for the lab: architecture, the decisions behind it (ADRs), operational runbooks, and a roadmap. The docs are kept up to date with every change to the lab.
+> **Status:** infrastructure and documentation are in place. Lab isolation, Splunk, and the AD targets are being built now ([roadmap](docs/roadmap.md)). Investigations will appear below as they're completed.
 
-## At a glance
+## SOC workflow
 
-| | |
+```mermaid
+flowchart LR
+    A["Emulate<br/>Kali · Atomic Red Team"] --> B["Collect<br/>Sysmon · Windows events<br/>DNS · firewall · Linux"]
+    B --> C["Detect<br/>SPL detections →<br/>alert queue"]
+    C --> D["Investigate<br/>triage · scope · timeline"]
+    D --> E["Document<br/>case write-up<br/>ATT&CK mapping"]
+    E --> F["Improve<br/>tune / add detections"]
+    F -.-> C
+```
+
+| Evidence | Where |
 |---|---|
-| **Hypervisor** | Proxmox VE: a 3-node cluster (`TheRising`) plus a standalone storage node (`Sefi`) |
-| **Compute** | 32 CPU threads · ~100 GiB RAM across 4 nodes |
-| **Storage** | Local ZFS for guest disks · 5.3 TB ZFS pool shared over NFS for ISOs and templates |
-| **Network** | TP-Link Omada gateway · VLAN-segmented management, services, and security-lab networks |
-| **Core services** | Redundant internal DNS (Technitium, `demarzo.lab`), one server per Proxmox environment |
-| **Security lab** | Isolated Kali Linux VLAN with a golden template and snapshot-based resets |
+| Investigations (case write-ups) | [`docs/investigations/`](docs/investigations/) |
+| SPL detections, each tested against an emulated attack | [`detections/`](detections/) |
+| Lab isolation rules, with before/after test results | [`docs/architecture/firewall-rules.md`](docs/architecture/firewall-rules.md) |
+| Design decisions | [`docs/adr/`](docs/adr/) |
 
 ## Architecture
 
 ```mermaid
 flowchart TB
-    internet((Internet)) --- gw["Omada gateway<br/>10.12.5.1"]
+    internet((Internet)) --- gw["Omada gateway<br/>ACLs + syslog"]
 
     gw --- mgmt["VLAN 5 · Management<br/>10.12.5.0/24"]
     gw --- svc["VLAN 30 · Services<br/>10.12.30.0/24"]
-    gw --- sec["VLAN 40 · Security lab<br/>10.12.40.0/24"]
+    gw --- lab["VLAN 40 · Security lab<br/>10.12.40.0/24"]
 
-    subgraph rising["TheRising: 3-node Proxmox cluster"]
-        darrow["darrow · 12c / 31G<br/>Kali-Master template"]
-        ragnar["ragnar · 8c / 23G<br/>homepage · claude"]
-        sevro["sevro · 8c / 31G<br/>dns1 · kali"]
-    end
+    mgmt --- m1["Proxmox hosts<br/>dns1 · dns2 · ops"]
+    svc --- s1["Splunk (planned)<br/>homepage"]
+    lab --- l1["Kali<br/>AD DC + Win11 (planned)"]
 
-    subgraph sefi_site["Sefi: standalone Proxmox"]
-        sefi["sefi · 4c / 15G<br/>dns2 · ops<br/>pax ZFS 5.3 TB"]
-    end
-
-    mgmt --- rising
-    mgmt --- sefi_site
-    sefi -. "NFS: ISOs, templates" .-> rising
+    lab -. "forwarders :9997" .-> s1
+    lab -. "DNS :53 only" .-> m1
+    m1 -. "DNS logs" .-> s1
+    gw -. "firewall logs" .-> s1
 ```
 
-More detail: [architecture overview](docs/architecture/overview.md) · [network](docs/architecture/network.md) · [compute](docs/architecture/compute.md) · [storage](docs/architecture/storage.md) · [DNS](docs/architecture/dns.md) · [live inventory](docs/inventory.md)
+| | |
+|---|---|
+| **Hypervisor** | Proxmox VE: 3-node cluster (`TheRising`) + standalone storage node (`Sefi`), 32 threads / ~100 GiB RAM |
+| **Network** | TP-Link Omada gateway. VLANs for management, services, and an isolated security lab |
+| **SIEM** | Splunk Enterprise: Universal Forwarders, Sysmon, DNS and firewall logs, a homemade alert queue on Splunk Free ([ADR 0006](docs/adr/0006-soc-focus-with-splunk.md)) |
+| **Targets** | Active Directory (Windows Server DC + Windows 11), rebuilt from golden templates |
+| **Core services** | Redundant Technitium DNS (`demarzo.lab`) split across failure domains |
 
-## What this lab shows
+Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture/network.md) · [firewall rules](docs/architecture/firewall-rules.md) · [compute](docs/architecture/compute.md) · [storage](docs/architecture/storage.md) · [DNS](docs/architecture/dns.md) · [live inventory](docs/inventory.md)
 
-- **Virtualization and clustering:** a quorum-based Proxmox cluster, templates, cloud-init provisioning, snapshots
-- **Network segmentation:** VLAN-aware bridges with separate management, service, and attack-lab networks
-- **Resilient core services:** a DNS pair split across independent failure domains
-- **Docs as code:** architecture decision records, runbooks, and an inventory generated from the Proxmox API ([`scripts/inventory.py`](scripts/inventory.py))
-- **Security practice:** an isolated offensive-security VLAN, with defensive tooling (SIEM) on the [roadmap](docs/roadmap.md)
+## Skills demonstrated
+
+- **Security operations:** alert triage, investigation, incident documentation, MITRE ATT&CK mapping
+- **Splunk:** data onboarding (forwarders, sourcetypes, indexes), SPL detections, dashboards, summary-index alerting
+- **Endpoint telemetry:** Sysmon, Windows Security events, Active Directory logging
+- **Network security:** VLAN segmentation, firewall ACL design, and verification testing
+- **Infrastructure:** Proxmox clustering, templates, cloud-init, redundant DNS, docs as code
 
 ## Roadmap
 
-The lab is being built out in phases. Each item is marked done only when it has evidence (a restore test, a working alert, etc.). Full detail: [docs/roadmap.md](docs/roadmap.md).
-
 | Phase | Focus | Status |
 |---|---|---|
-| 0 | Documentation foundation: this repo | ✅ Done |
-| 1 | Hygiene: DNS records, guest metadata, VLAN firewall rules | ⏳ Next |
-| 2 | Enterprise core: backups (PBS), config management (Ansible), monitoring, SIEM (Wazuh) | 🗓️ Planned |
-| 3 | Stretch: Active Directory, Terraform, offsite backups | 💭 Optional |
+| 0 | Documentation foundation | ✅ Done |
+| 1 | Hygiene: guest metadata, tags, admin host in the management zone | ✅ Mostly done |
+| 2 | Safe to attack: isolate the lab VLAN | ⏳ Next |
+| 3 | Visibility: Splunk plus log sources | 🗓️ Planned |
+| 4 | Targets: Active Directory with Sysmon | 🗓️ Planned |
+| 5 | SOC workflow evidence: emulate → detect → investigate → write up | 🗓️ Planned |
+
+Full detail: [docs/roadmap.md](docs/roadmap.md)
 
 ## Repository layout
 
 ```
 docs/
-  architecture/   how the lab is built
-  adr/            why it is built that way (architecture decision records)
-  runbooks/       step-by-step operational procedures
-  inventory.md    generated: nodes, guests, storage
-  roadmap.md      phased build-out plan
-scripts/
-  inventory.py    regenerates docs/inventory.md from the Proxmox API
+  investigations/  case write-ups (+ template)
+  architecture/    how the lab is built, incl. firewall rules
+  adr/             why it is built that way
+  runbooks/        operational procedures
+  inventory.md     generated from the Proxmox API
+  roadmap.md
+detections/        SPL detections
+scripts/           inventory generator
 ```
 
 ## Security note
 
-This repo is public. It contains private RFC 1918 addresses and the internal lab domain, which aren't reachable from outside. It contains no credentials, API tokens, keys, or public IPs. The inventory script reads its API token from a config file outside the repo, and commits are scanned with [gitleaks](https://github.com/gitleaks/gitleaks).
+This repo is public. It contains private RFC 1918 addresses and the internal lab domain, which aren't reachable from outside. It contains no credentials, API tokens, keys, or public IPs. Commits are scanned with [gitleaks](https://github.com/gitleaks/gitleaks). All attack activity is confined to an isolated lab VLAN against systems I own.
