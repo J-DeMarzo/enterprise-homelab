@@ -1,88 +1,74 @@
 # Firewall rules (Omada gateway ACLs)
 
-**Status:** the rules exist, but the default-deny rule (#9) is **disabled**, so inter-VLAN traffic is effectively unrestricted. IP groups are being corrected. Baseline measured 2026-09-29.
+**Status:** default-deny between VLANs is **enforced** as of 2026-09-30. 16 of 18 tests pass. The 2 failures are the gateway's own admin UI, which LAN → LAN ACLs don't cover (see [open items](#open-items)).
 
 ## Design
-An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs top-down and the first match wins. Rules 1–8 permit specific flows, and rule 9 denies everything else between VLANs. Management isn't in rule 9's source list, so it keeps full reach. The policy matrix is in [network.md](network.md#segmentation-policy).
+An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs top-down and the first match wins. Rules 1–8 permit specific flows, rule 9 isolates Guest, and rule 10 denies everything else between VLANs. Management isn't in rule 10's source list, so it keeps full reach. The policy matrix is in [network.md](network.md#segmentation-policy).
 
-## Current rules (Gateway ACL, LAN → LAN)
+**The ACLs are stateful** (verified by T8): replies to permitted connections are allowed back, so a deny on A → B doesn't break connections that B starts to A.
 
-| # | Name | Action | Protocol | Source | Destination | Enabled | Notes |
-|---|---|---|---|---|---|---|---|
-| 1 | Golden Ticket | Permit | All | IP group `Admin Terminals` | All networks | ✅ | Rename suggested: "Golden Ticket" is also a Kerberos attack name (T1558.001) |
-| 2 | MGMT → ALL | Permit | All | Management | All other networks | ✅ | |
-| 3 | INT → Servers | Permit | All | Internal | Servers | ✅ | |
-| 4 | ALLOW DNS | Permit | TCP+UDP | Mgmt, Internal, IoT, Servers, Security, DMZ | IP group `DNS` | ✅ | ⚠️ **All ports**, not just 53, because the destination is an IP group, not an IP-Port group. Lets Security reach the Technitium admin UI (5380) |
-| 5 | Servers → NFS | Permit | TCP+UDP | Servers | IP-Port group `NFS` | ✅ | |
-| 6 | Allow Proxmox Access | Permit | TCP | IP group `Proxmox 8006` | IP-Port group `Proxmox Port` | ✅ | Logged |
-| 7 | Sec → Servers | Permit | TCP | Security | IP-Port group `SIEM In` | ✅ | Splunk forwarding path |
-| 8 | GUEST → RFC1918 | Deny | All | Guest | All internal networks | ✅ | |
-| 9 | DENY Inter-LAN | Deny | All | Internal, IoT, Guest, DMZ, Security, Servers | IP group `All VLAN` | ❌ **Disabled** | The default-deny backstop. With it off, anything not matched above is allowed |
-
-## Target rule set
-
-What the ACL list should look like after the change plan. Changes from the current rules are in **bold**.
+## Rules (Gateway ACL, LAN → LAN)
 
 | # | Name | Action | Protocol | Source | Destination | Log |
 |---|---|---|---|---|---|---|
-| 1 | **Admin Terminals → ALL** (renamed) | Permit | All | IP group `Admin Terminals` | All 7 networks | Off |
+| 1 | Admin Terminals → ALL | Permit | All | IP group `Admin Terminals` | All 7 networks | Off |
 | 2 | MGMT → ALL | Permit | All | Management | Internal, IoT, Servers, Security, DMZ, Guest | Off |
 | 3 | INT → Servers | Permit | All | Internal | Servers | Off |
-| 4 | **INT → IoT** *(optional, see open decisions)* | Permit | All | Internal | IoT | Off |
-| 5 | ALLOW DNS | Permit | TCP+UDP | Mgmt, Internal, IoT, Servers, Security, DMZ | **IP-Port group `DNS` (:53)** | Off |
+| 4 | INT → IoT *(optional)* | Permit | All | Internal | IoT | Off |
+| 5 | ALLOW DNS | Permit | TCP+UDP | Mgmt, Internal, IoT, Servers, Security, DMZ | IP-Port group `DNS` (:53) | Off |
 | 6 | Servers → NFS | Permit | TCP+UDP | Servers | IP-Port group `NFS` | Off |
-| 7 | Allow Proxmox Access | Permit | TCP | IP group **`Proxmox Clients`** (renamed from `Proxmox 8006`) | IP-Port group `Proxmox Port` | On |
-| 8 | **Sec → SIEM** (renamed) | Permit | TCP | Security | IP-Port group `SIEM In` | Off |
-| 9 | GUEST → RFC1918 | Deny | All | Guest | All other networks | **On** |
-| 10 | DENY Inter-LAN | Deny | All | Internal, IoT, Guest, DMZ, Security, Servers | IP group `All VLAN` | **On** · **Enabled** |
+| 7 | Allow Proxmox Access | Permit | TCP | IP group `Proxmox Clients` | IP-Port group `Proxmox Port` | On |
+| 8 | Sec → SIEM | Permit | TCP | Security | IP-Port group `SIEM In` | Off |
+| 9 | GUEST → RFC1918 | Deny | All | Guest | All other networks | On |
+| 10 | DENY Inter-LAN | Deny | All | Internal, IoT, Guest, DMZ, Security, Servers | IP group `All VLAN` | On |
 
 Logging on the deny rules sends blocked traffic to the gateway log. Once gateway syslog reaches Splunk (roadmap Phase 3), denied connections out of the Security VLAN become detection data: lateral-movement attempts from the lab show up as firewall events.
 
-## IP groups: target definitions
+## IP groups
 
-Enter these in Omada under the IP group profiles. Hosts listed by address need a **static IP or DHCP reservation**.
+Hosts listed by address have a static IP or a DHCP reservation, so their permissions stay tied to the host.
 
 | Group | Type | Members | Used by |
 |---|---|---|---|
-| `Admin Terminals` | IP | Your admin desktop (`demarzoDesk`, reserved IP) | Rule 1 |
-| `DNS` → change to **IP-Port** | IP-Port | 10.12.5.53, 10.12.5.54 · port **53** | Rule 5 |
-| `NFS` | IP-Port | 10.12.5.14 · port **2049** (NFSv4) | Rule 6 |
-| `Proxmox Clients` (rename of `Proxmox 8006`) | IP | 10.12.30.101 (`claude`, needs a reservation). Add 10.12.30.100 (`homepage`) only if its widgets query Proxmox | Rule 7 |
-| `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port **8006** | Rule 7 |
-| `SIEM In` | IP-Port | 10.12.30.20 · port **9997** | Rule 8 |
-| `All VLAN` | IP | 10.12.0.0/16 (all seven VLANs). Or all RFC 1918 ranges to also cover any upstream/ISP LAN | Rule 10 |
+| `Admin Terminals` | IP | Admin desktop (reserved IP) | Rule 1 |
+| `DNS` | IP-Port | 10.12.5.53, 10.12.5.54 · port 53 | Rule 5 |
+| `NFS` | IP-Port | 10.12.5.14 · port 2049 (NFSv4) | Rule 6 |
+| `Proxmox Clients` | IP | 10.12.30.101 (`claude`, reserved) | Rule 7 |
+| `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port 8006 | Rule 7 |
+| `SIEM In` | IP-Port | 10.12.30.20 · port 9997. Add :8089 if a Splunk deployment server is used | Rule 8 |
+| `All VLAN` | IP | 10.12.0.0/16 | Rule 10 |
 
 `ops` (10.12.5.10) needs no group entries because it's in Management ([ADR 0005](../adr/0005-admin-hosts-in-management-zone.md)).
 
-## Change plan
-1. Correct the IP groups (table above). Make the ALLOW DNS rule's destination the `DNS` **IP-Port** group (port 53). Reorder and rename to match the [target rule set](#target-rule-set).
-2. Reserve IPs for the admin desktop and `claude` (10.12.30.101).
-3. Decide the [open decisions](#open-decisions).
-4. **Enable DENY Inter-LAN** (target rule 10) with logging on. Rollback is the same toggle.
-5. Run the test plan below and record the results.
+## Test results
 
-## Open decisions
-- **Internal → IoT.** With rule 9 on, Internal devices can't start connections to IoT (casting to a TV, printing, a smart-home hub UI). If that's needed, add *Permit Internal → IoT* above rule 9. IoT → Internal stays blocked. Discovery protocols like mDNS don't cross VLANs anyway without a reflector.
-- **Stateful ACLs.** If Omada's gateway ACLs are stateless on this firmware, rule 9 also drops the *replies* to permitted connections (e.g. Servers answering Internal under rule 3). Test T8 and T13 catch this.
-- **Gateway self-access.** Traffic to the gateway's own IPs (10.12.x.1) may not be subject to LAN → LAN rules. If T6/T7 are still open, restrict the gateway's management access to Management.
+"Before" was measured on 2026-09-29 with the default-deny rule disabled. "After" was measured on 2026-09-30 with rule 10 enabled. Tests ran as TCP connects from the named host: `kali` (10.12.40.101, Security), `ops` (10.12.5.10, Management), `claude` (10.12.30.101, Servers).
 
-## Baseline and test plan
+| # | From → To | Port | Expected | Before | After | Pass |
+|---|---|---|---|---|---|---|
+| T1 | kali → darrow / sefi Proxmox UI | 8006 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
+| T2 | kali → darrow SSH | 22 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
+| T3 | kali → dns1 admin UI | 5380 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
+| T4 | kali → dns1 DNS (TCP connect and real lookups) | 53 | ✅ | OPEN | OPEN, resolves internal and external names | ✅ |
+| T5 | kali → ops SSH | 22 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
+| T6 | kali → gateway UI (10.12.5.1) | 443 | ❌ | 🔴 OPEN | 🔴 OPEN | ❌ |
+| T7 | kali → gateway UI (10.12.40.1) | 443 | ❌ | 🔴 OPEN | 🔴 OPEN | ❌ |
+| T8 | ops → kali (temporary listener) | 8080 | ✅ | n/a | HTTP 200. **Proves the ACLs are stateful** | ✅ |
+| T9 | kali → homepage (Servers) | 3000 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
+| T10 | kali → internet | 443 | ✅ | OPEN | OPEN | ✅ |
+| T11 | kali → Splunk forwarding | 9997 | ✅ | n/a | *Pending Splunk deployment* | – |
+| T12 | kali → Splunk web UI | 8000 | ❌ | n/a | *Pending Splunk deployment* | – |
+| T13 | claude → Proxmox API (darrow, sefi) | 8006 | ✅ | OPEN | OPEN | ✅ |
+| T14 | claude → darrow SSH | 22 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
+| T15 | claude → dns1 admin UI | 5380 | ❌ | n/a | BLOCKED | ✅ |
+| T16 | claude → ops SSH (Servers → Mgmt) | 22 | ❌ | n/a | BLOCKED | ✅ |
+| T17 | claude → kali (Servers → Security) | 8080 | ❌ | n/a | BLOCKED | ✅ |
+| T18 | kali → claude SSH (Security → Servers) | 22 | ❌ | n/a | BLOCKED | ✅ |
+| T19 | ops → homepage, claude (Mgmt → Servers) | 3000, 22 | ✅ | n/a | OPEN | ✅ |
 
-"Before" was measured from `kali` (10.12.40.101, Security) on 2026-09-29 with rule 9 disabled.
+Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, where I can't run tests.
 
-| # | From → To | Port | Expected after | Before | After |
-|---|---|---|---|---|---|
-| T1 | kali → darrow Proxmox UI | 8006 | ❌ | 🔴 OPEN | |
-| T2 | kali → darrow SSH | 22 | ❌ | 🔴 OPEN | |
-| T3 | kali → dns1 admin UI | 5380 | ❌ | 🔴 OPEN | |
-| T4 | kali → dns1 DNS | 53 | ✅ | OPEN | |
-| T5 | kali → ops SSH | 22 | ❌ | 🔴 OPEN | |
-| T6 | kali → gateway UI (10.12.5.1) | 443 | ❌ | 🔴 OPEN | |
-| T7 | kali → gateway UI (10.12.40.1) | 443 | ❌ | 🔴 OPEN | |
-| T8 | ops (Mgmt) → kali (temporary listener on 8080) | 8080 | ✅ | n/a | |
-| T9 | kali → homepage (Servers) | 3000 | ❌ | 🔴 OPEN | |
-| T10 | kali → internet | 443 | ✅ | OPEN | |
-| T11 | kali → Splunk (once deployed) | 9997 | ✅ | n/a | |
-| T12 | kali → Splunk web UI (once deployed) | 8000 | ❌ | n/a | |
-| T13 | claude (Servers) → Proxmox API | 8006 | ✅ | OPEN | |
-| T14 | claude (Servers) → darrow SSH | 22 | ❌ | 🔴 OPEN | |
+## Open items
+- **Gateway admin UI reachable from the Security VLAN (T6, T7).** Traffic to the gateway's own addresses isn't routed between VLANs, so LAN → LAN ACLs don't apply to it. Fix: restrict the gateway's management access to the Management network (and Admin Terminals) in the Omada controller, then rerun T6/T7.
+- **T11/T12** once Splunk is deployed at 10.12.30.20.
+- **Log injection:** Security can send to Splunk :9997, so a compromised lab host could forge log events. Accepted for the lab. Future hardening: forwarder TLS with client certificates.

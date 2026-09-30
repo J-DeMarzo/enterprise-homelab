@@ -53,4 +53,4 @@ Default deny between VLANs, with explicit allows (Omada evaluates the rules top-
 
 Admin terminals (an IP group) have full access, like Management. ❓ = open decision (see [firewall-rules.md](firewall-rules.md#open-decisions)).
 
-**This is the intended policy. It is not enforced yet:** the default-deny rule is currently disabled. Rules, IP groups, and the before/after tests are in [firewall-rules.md](firewall-rules.md).
+**Enforced since 2026-09-30.** Rules, IP groups, and the before/after test results are in [firewall-rules.md](firewall-rules.md).

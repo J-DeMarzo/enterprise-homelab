@@ -18,7 +18,8 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [ ] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB) from a verified cloud image. Build a golden cloud-init template (VMID 9001) on TheRising for Splunk and future VMs. Runbook
 
 ## Phase 2: Safe to attack
-- [ ] **Enforce default-deny between VLANs**: correct the IP groups, limit the DNS rule to port 53, enable rule 9 ([rules, groups, and test plan](architecture/firewall-rules.md)). *Evidence:* the before/after test table. The baseline showed the Security VLAN could reach the Proxmox UIs, SSH, and the admin consoles
+- [x] **Enforce default-deny between VLANs**: IP groups corrected, DNS rule limited to port 53, default-deny enabled. *Evidence:* [before/after test table](architecture/firewall-rules.md#test-results). 16/18 pass, and the ACLs are verified stateful
+- [ ] Restrict the gateway's admin UI to Management (tests T6/T7 still open from the Security VLAN)
 
 ## Phase 3: Visibility (SIEM)
 | Item | Placement | Evidence to finish it |
