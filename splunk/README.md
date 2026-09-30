@@ -9,7 +9,8 @@ apps/homelab_base/        installed on the indexer (splunk, 10.12.30.20)
   default/transforms.conf zone lookup definition (+ DNS privacy filter, added when Technitium is onboarded)
   default/props.conf      sourcetypes + automatic lookups (added per source as onboarded)
   lookups/vlan_zones.csv  10.12.<vlan>.0/24 → zone, trust
-forwarder/                outputs.conf + per-role inputs for Universal Forwarders (added per source)
+forwarder/install-uf.sh   Universal Forwarder installer: checksum-verified package, localhost-only mgmt port,
+                          roles `linux` (journald → linux) and `technitium` (query logs → dns)
 server/                   rsyslog intake, ufw host firewall, raw-buffer cleanup cron for the Splunk VM
 ```
 
