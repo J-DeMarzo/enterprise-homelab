@@ -33,6 +33,31 @@ A lower-power node that is mainly the storage server (see [storage.md](storage.m
 | Critical guests | `onboot=1`; dns1 also has deletion protection enabled |
 | Notes | Every guest has a Markdown **Notes** card in the Proxmox UI (see below) |
 
+## Tag scheme
+
+Every guest has exactly two tags. They show up as colored chips in the Proxmox tree and can be filtered on.
+
+**Role: what the guest does**
+
+| Tag | Meaning | Test |
+|---|---|---|
+| `infra` | Core services everything else depends on | If it's down, other things break |
+| `admin` | Hosts the lab is managed *from* | If it's down, nothing breaks, but nothing can be fixed or automated |
+| `app` | Things people use, built on top of infra | If it's down, it's just inconvenient |
+| `lab` | Disposable security-exercise machines | Safe to wreck and roll back |
+| `desktop` | Interactive workstations | |
+
+**Zone: which VLAN it lives on:** `net-mgmt` (5), `net-svc` (30), `net-lab` (40)
+
+| Guest | Role | Zone |
+|---|---|---|
+| dns1, dns2 | `infra` | `net-mgmt` |
+| ops | `admin` | `net-mgmt` |
+| claude | `admin` | `net-svc` |
+| homepage | `app` | `net-svc` |
+| kali, Kali-Master | `lab` | `net-lab` |
+| Omarchy | `desktop` | `net-svc` |
+
 ## Guest notes standard
 
 Every guest's Notes field (the `description` config key) follows the same layout, so anyone opening a guest in the Proxmox UI sees what it is, who owns it, and where it's documented:

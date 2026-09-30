@@ -15,14 +15,14 @@
 
 | ID | Name | Type | Location | Status | vCPU | RAM | VLAN | IP | Tags |
 |---|---|---|---|---|---|---|---|---|---|
-| 150 | Omarchy | VM | TheRising/darrow | stopped | 4 | 8 GiB | 30 | dhcp | - |
-| 200 | dns1 | LXC | TheRising/sevro | running | 1 | 512 MiB | 5 | 10.12.5.53 | community-script, dns |
-| 250 | kali | VM | TheRising/sevro | running | 4 | 4 GiB | 40 | 10.12.40.101 (dhcp) | master |
-| 300 | homepage | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.100 (dhcp) | community-script, dashboard |
-| 301 | claude | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.101 (dhcp) | - |
-| 400 | dns2 | LXC | Sefi/sefi | running | 1 | 512 MiB | 5 | 10.12.5.54 | - |
-| 450 | ops | VM | Sefi/sefi | running | 4 | 8 GiB | 30 | 10.12.30.10 | - |
-| 9000 | Kali-Master | template | TheRising/darrow | stopped | 4 | 4 GiB | 40 | dhcp | master |
+| 150 | Omarchy | VM | TheRising/darrow | stopped | 4 | 8 GiB | 30 | dhcp | desktop, net-svc |
+| 200 | dns1 | LXC | TheRising/sevro | running | 1 | 512 MiB | 5 | 10.12.5.53 | infra, net-mgmt |
+| 250 | kali | VM | TheRising/sevro | running | 4 | 4 GiB | 40 | 10.12.40.101 (dhcp) | lab, net-lab |
+| 300 | homepage | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.100 (dhcp) | app, net-svc |
+| 301 | claude | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.101 (dhcp) | admin, net-svc |
+| 400 | dns2 | LXC | Sefi/sefi | running | 1 | 512 MiB | 5 | 10.12.5.54 | infra, net-mgmt |
+| 450 | ops | VM | Sefi/sefi | running | 4 | 8 GiB | 5 | 10.12.5.10 | admin, net-mgmt |
+| 9000 | Kali-Master | template | TheRising/darrow | stopped | 4 | 4 GiB | 40 | dhcp | lab, net-lab |
 
 ## Storage
 
@@ -31,7 +31,7 @@
 | Sefi | ISO | dir | sefi | 49 GiB | 5456 GiB |
 | Sefi | Snippets | dir | sefi | 49 GiB | 5456 GiB |
 | Sefi | Templates | dir | sefi | 49 GiB | 5456 GiB |
-| Sefi | local-zfs | zfspool | sefi | 13 GiB | 450 GiB |
+| Sefi | local-zfs | zfspool | sefi | 15 GiB | 450 GiB |
 | Sefi | pax | zfspool | sefi | 49 GiB | 5456 GiB |
 | TheRising | ISO | nfs | shared | 49 GiB | 5456 GiB |
 | TheRising | Snippets | nfs | shared | 49 GiB | 5456 GiB |
