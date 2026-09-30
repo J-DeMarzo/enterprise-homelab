@@ -28,7 +28,7 @@ A lower-power node that is mainly the storage server (see [storage.md](storage.m
 | VMIDs | Grouped by role: `1xx` desktops, `2xx` core/security, `3xx` apps, `4xx` Sefi-hosted, `9xxx` templates |
 | Containers | Unprivileged LXC by default |
 | VMs | VirtIO disk/NIC, QEMU guest agent enabled, cloud-init where supported |
-| Templates | Golden images (`9xxx`) stored on `VM-Templates` (NFS from pax) so any cluster node can clone them. **Always full-cloned to `fast-local`** (`--full --storage fast-local`). Linked clones would have to stay on the template's NFS storage, so running VMs would depend on Sefi |
+| Templates | Golden images (`9xxx`) stored on `VM-Templates` (NFS from pax) so any cluster node can clone them. **Always full-cloned to `fast-local` on the template's node, then migrated** to the target node ([runbook](../runbooks/deploy-guest-from-template.md)). Proxmox can't clone directly to another node's local storage, and linked clones would have to stay on NFS, so running VMs would depend on Sefi |
 | Snapshots | Taken before risky changes. The lab VM `kali` keeps a `Clean` baseline snapshot |
 | Critical guests | `onboot=1`; dns1 also has deletion protection enabled |
 | Notes | Every guest has a Markdown **Notes** card in the Proxmox UI (see below) |
@@ -45,6 +45,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | `admin` | Hosts the lab is managed *from* | If it's down, nothing breaks, but nothing can be fixed or automated |
 | `app` | Things people use, built on top of infra | If it's down, it's just inconvenient |
 | `lab` | Disposable security-exercise machines | Safe to wreck and roll back |
+| `template` | Golden images, never run directly | Clone, don't modify |
 | `desktop` | Interactive workstations | |
 
 **Zone: which VLAN it lives on:** `net-mgmt` (5), `net-svc` (30), `net-lab` (40)
@@ -56,6 +57,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | claude | `admin` | `net-svc` |
 | homepage | `app` | `net-svc` |
 | kali, Kali-Master | `lab` | `net-lab` |
+| ubuntu-2404-ci (9001) | `template` | `net-svc` (default for clones) |
 | Omarchy | `desktop` | `net-svc` |
 
 ## Guest notes standard

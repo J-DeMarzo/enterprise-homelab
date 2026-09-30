@@ -9,10 +9,12 @@
 | `pax` | ZFS pool (5.3 TB) | sefi | Bulk data, backing store for the shares below | Large capacity on one box |
 | `ISO` | NFS (from sefi) | cluster-wide | Installer ISOs | One copy for every node |
 | `Templates` | NFS (from sefi) | cluster-wide | LXC templates | |
-| `VM-Templates` | NFS (from sefi) | cluster-wide | Golden VM images (e.g. VMID 9000) | Any node can clone from them |
+| `VM-Templates` | NFS (from sefi) | cluster-wide | Golden VM images (9000, 9001) and verified cloud images (`import/`) | Any node can clone from them |
 | `Snippets` | NFS (from sefi) | cluster-wide | Cloud-init snippets, hookscripts | |
 
-On Sefi the same shares show up as local `dir` storage, since they live on `pax`.
+On Sefi the same shares show up as local `dir` storage, since they live on `pax`. Sefi's `ISO` storage (`/pax/iso`) also allows `import` content, so Sefi VMs can be built from the same verified cloud image.
+
+**Incident:** [INC-2026-001](../incidents/2026-09-30-darrow-nfs-stale-handle.md). darrow lost access to `VM-Templates` after a file delete through the API (stale NFS handle).
 
 ## Design notes
 

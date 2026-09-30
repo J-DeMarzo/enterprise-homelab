@@ -9,7 +9,7 @@
 
 - **Internal zone:** `demarzo.lab`. dns1 is primary (SOA `mname`). Both servers answer for the zone with the same SOA serial.
 - **Split across failure domains:** one server runs on the cluster and one on the standalone node. Losing the whole cluster or all of Sefi still leaves working DNS. See [ADR 0002](../adr/0002-technitium-dns-pair.md).
-- **Clients** should get both servers (`10.12.5.53`, `10.12.5.54`) and the search domain `demarzo.lab`. Exception: the `ops` VM's cloud-init config only lists dns1 so far (roadmap Phase 1).
+- **Clients** get both servers (`10.12.5.53`, `10.12.5.54`) and the search domain `demarzo.lab`. The `ops` VM and the Ubuntu template set both through cloud-init.
 - **Recursion:** both servers resolve external names for lab clients.
 - **Admin UI:** Technitium web console on port 5380 on each server.
 

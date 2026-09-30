@@ -21,22 +21,23 @@
 | 300 | homepage | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.100 (dhcp) | app, net-svc |
 | 301 | claude | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.101 (dhcp) | admin, net-svc |
 | 400 | dns2 | LXC | Sefi/sefi | running | 1 | 512 MiB | 5 | 10.12.5.54 | infra, net-mgmt |
-| 450 | ops | VM | Sefi/sefi | running | 4 | 8 GiB | 5 | 10.12.5.10 | admin, net-mgmt |
+| 450 | ops | VM | Sefi/sefi | running | 2 | 4 GiB | 5 | 10.12.5.10 | admin, net-mgmt |
 | 9000 | Kali-Master | template | TheRising/darrow | stopped | 4 | 4 GiB | 40 | dhcp | lab, net-lab |
+| 9001 | ubuntu-2404-ci | template | TheRising/sevro | stopped | 2 | 2 GiB | 30 | dhcp | net-svc, template |
 
 ## Storage
 
 | Target | Storage | Type | Node | Used | Size |
 |---|---|---|---|---|---|
-| Sefi | ISO | dir | sefi | 49 GiB | 5456 GiB |
-| Sefi | Snippets | dir | sefi | 49 GiB | 5456 GiB |
-| Sefi | Templates | dir | sefi | 49 GiB | 5456 GiB |
-| Sefi | local-zfs | zfspool | sefi | 15 GiB | 450 GiB |
-| Sefi | pax | zfspool | sefi | 49 GiB | 5456 GiB |
-| TheRising | ISO | nfs | shared | 49 GiB | 5456 GiB |
-| TheRising | Snippets | nfs | shared | 49 GiB | 5456 GiB |
-| TheRising | Templates | nfs | shared | 49 GiB | 5456 GiB |
-| TheRising | VM-Templates | nfs | shared | 49 GiB | 5456 GiB |
+| Sefi | ISO | dir | sefi | 51 GiB | 5456 GiB |
+| Sefi | Snippets | dir | sefi | 51 GiB | 5456 GiB |
+| Sefi | Templates | dir | sefi | 51 GiB | 5456 GiB |
+| Sefi | local-zfs | zfspool | sefi | 2 GiB | 450 GiB |
+| Sefi | pax | zfspool | sefi | 51 GiB | 5456 GiB |
+| TheRising | ISO | nfs | shared | 51 GiB | 5456 GiB |
+| TheRising | Snippets | nfs | shared | 51 GiB | 5456 GiB |
+| TheRising | Templates | nfs | shared | 51 GiB | 5456 GiB |
+| TheRising | VM-Templates | nfs | shared | 51 GiB | 5456 GiB |
 | TheRising | fast-local | zfspool | darrow | 89 GiB | 899 GiB |
-| TheRising | fast-local | zfspool | ragnar | 6 GiB | 450 GiB |
+| TheRising | fast-local | zfspool | ragnar | 7 GiB | 450 GiB |
 | TheRising | fast-local | zfspool | sevro | 66 GiB | 450 GiB |

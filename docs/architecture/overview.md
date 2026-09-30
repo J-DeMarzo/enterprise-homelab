@@ -27,7 +27,8 @@ See the generated [inventory](../inventory.md). In short:
 | Guest | Role | Where |
 |---|---|---|
 | dns1 / dns2 | Internal DNS (Technitium) | sevro / sefi |
-| ops | Admin VM (Ubuntu, cloud-init). Ansible/Terraform control node, on hold ([ADR 0006](../adr/0006-soc-focus-with-splunk.md)) | sefi |
+| ops | Headless admin jump box (Ubuntu 24.04, rebuilt 2026-09-30). Ansible/Terraform control node when that resumes ([ADR 0006](../adr/0006-soc-focus-with-splunk.md)) | sefi |
+| ubuntu-2404-ci | Golden Ubuntu template (9001) for Splunk and future VMs | sevro (disk on pax) |
 | homepage | Lab dashboard | ragnar |
 | claude | AI assistant workstation for lab operations | ragnar |
 | kali / Kali-Master | Offensive-security VM and its golden template | sevro / darrow |

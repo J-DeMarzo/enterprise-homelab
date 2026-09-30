@@ -15,7 +15,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [ ] DNS: records for `ops`, `homepage`, `gw`, `splunk`. Fix the NS records. Document how dns2 syncs
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
 - [ ] **Least-privilege API token** for `claude-mcp@pve`: it currently holds near-admin rights (can create users, allocate SDN, and so on). Replace it with a custom role scoped to VM, storage, and guest-agent operations. Record the change as an ADR
-- [ ] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB) from a verified cloud image. Build a golden cloud-init template (VMID 9001) on TheRising for Splunk and future VMs. Runbook
+- [x] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB, both DNS servers) and build the golden template `ubuntu-2404-ci` (9001). *Evidence:* [runbook](runbooks/build-ubuntu-template.md), verified test clone, [INC-2026-001](incidents/2026-09-30-darrow-nfs-stale-handle.md)
 
 ## Phase 2: Safe to attack ✅
 - [x] **Enforce default-deny between VLANs**: IP groups corrected, DNS rule limited to port 53, default-deny enabled. *Evidence:* [before/after test table](architecture/firewall-rules.md#test-results). all 21 executed tests pass, and the ACLs are verified stateful

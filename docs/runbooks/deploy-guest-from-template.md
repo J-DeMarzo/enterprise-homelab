@@ -1,6 +1,6 @@
 # Runbook: Deploy a VM from a template
 
-**When:** You need a new VM based on a golden image (e.g. a fresh Kali box from `Kali-Master`, VMID 9000).
+**When:** You need a new VM based on a golden image: `ubuntu-2404-ci` (9001, [how it's built](build-ubuntu-template.md)) or `Kali-Master` (9000).
 
 ## Before you start
 - Pick a VMID from the right range ([compute.md](../architecture/compute.md#guest-standards)). You can also get the next free one with `pvesh get /cluster/nextid`.
@@ -8,16 +8,19 @@
 - Check the target node has enough free RAM (see [inventory](../inventory.md)).
 
 ## Steps
-1. **Clone** (on any TheRising node; templates live on shared NFS):
+1. **Clone onto fast-local on the template's own node**, then migrate if the VM should run elsewhere. Proxmox refuses to clone straight to another node's local storage (`can't clone to non-shared storage`):
    ```bash
-   qm clone 9000 <NEWID> --name <name> --full --storage fast-local --target <node>
+   # on the node that owns the template (9001: sevro, 9000: darrow)
+   qm clone <TEMPLATE> <NEWID> --name <name> --full --storage fast-local
+   qm migrate <NEWID> <target-node>        # offline, copies the disk; ~25 s for 8 GiB
    ```
-   Use `--full` so the clone doesn't depend on the template's disk.
+   Use `--full` so the clone doesn't depend on the template's disk (and on Sefi's NFS).
 2. **Set the network and resources:**
    ```bash
    qm set <NEWID> --net0 virtio,bridge=vmbr0,firewall=1,tag=<VLAN> --memory <MiB> --cores <n>
-   qm set <NEWID> --description "Owner: demarzo | Role: <role> | VLAN: <VLAN>" --tags <tag1>;<tag2>
+   qm set <NEWID> --tags "<role>;<zone>"      # see the tag scheme in compute.md
    ```
+   Add a Notes card following the [guest notes standard](../architecture/compute.md#guest-notes-standard).
 3. **Start it** and wait for the guest agent:
    ```bash
    qm start <NEWID>

@@ -83,6 +83,7 @@ docs/
   architecture/    how the lab is built, incl. firewall rules
   adr/             why it is built that way
   runbooks/        operational procedures
+  incidents/       incident reports from running the lab
   inventory.md     generated from the Proxmox API
   roadmap.md
 detections/        SPL detections

@@ -25,4 +25,4 @@ Hosts the lab is managed *from* (`admin` role) live on the Management VLAN (5), 
 | Graceful shutdown → `net0` tag removed, `ipconfig0=ip=10.12.5.10/24,gw=10.12.5.1` → start | Up in ~15 s, cloud-init `done` |
 | Verification from inside ops | Gateway, VLAN 30, internal and external DNS, and internet all reachable. Old IP silent |
 | Pre-existing issue found | `lightdm.service` failed on every boot (headless VM, `vga: serial0`), unrelated to this change. Fixed with `systemctl disable lightdm`, and ops now reports `running` with no failed units |
-| Cleanup | Delete snapshot `pre-vlan5-move` after a few days of stable running (on or after 2026-10-03) |
+| Superseded | 2026-09-30: ops was rebuilt from scratch as a headless jump box at the same address ([runbook](../runbooks/build-ubuntu-template.md)). The old VM and its `pre-vlan5-move` snapshot were destroyed |
