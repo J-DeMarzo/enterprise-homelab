@@ -66,7 +66,7 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 | Access point: Wi-Fi client flows | 10.12.5.200 | `omada:eap` | `netfw` | ✅ 2026-09-30. **Household flows dropped at index time** |
 | Unknown future senders | any | `syslog:unclassified` | `netfw` | Catch-all, so nothing is silently misparsed |
 
-**Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset. rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
+**Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset (fixed at the source on 2026-09-30 with NTP and a DST-aware time zone). rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
 
 **ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12). A lookup mapping IDs to names will be added as more IDs show up.
 
