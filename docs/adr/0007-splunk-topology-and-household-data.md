@@ -14,6 +14,8 @@ Splunk (ADR 0006) has to provide visibility across seven VLANs. Four of them hol
 5. **Household DNS minimization at index time.** Internal and Guest queries are indexed only when they failed or were blocked. IoT DNS is indexed in full: its traffic is machine-generated, and it's the best way to spot a compromised device.
 6. **The DMZ gets one outbound exception:** `dmz-edge` → Splunk TCP 9997 (gateway ACL rule 8). This is a single, documented hole in the otherwise isolated DMZ.
 
+**Addendum (2026-09-30):** the Omada access point turned out to log every Wi-Fi client connection (source → destination IP:port). The same household rule applies: Internal and Guest flows are dropped at index time, and IoT flows are kept. The raw syslog files on the Splunk server, which briefly hold the unfiltered stream, are deleted daily.
+
 ## Consequences
 - ✅ All seven VLANs are visible from day one with zero agents on household devices, the same pattern enterprises use for unmanaged and IoT devices.
 - ✅ Household browsing never lands in the SIEM or in public portfolio screenshots. Data minimization is a deliberate, explainable design choice.

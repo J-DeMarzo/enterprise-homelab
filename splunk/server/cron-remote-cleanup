@@ -1,0 +1,6 @@
+# /etc/cron.d/remote-syslog-cleanup on splunk (10.12.30.20)
+# /var/log/remote is only a buffer (Splunk reads it within seconds). The access
+# point's file contains household Wi-Fi flows that the index-time privacy filter
+# drops (ADR 0007), so only today's raw file is kept. rsyslog starts a new
+# <date>.log each day. At 00:15 every file not named for the current day is deleted.
+15 0 * * * root find /var/log/remote -type f -name '*.log' ! -name "$(date +\%F).log" -delete

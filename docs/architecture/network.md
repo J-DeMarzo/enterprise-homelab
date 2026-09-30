@@ -2,7 +2,7 @@
 
 ## Edge
 
-A **TP-Link Omada** gateway routes between VLANs and to the internet. It has an address in each VLAN (`.1`) and enforces the inter-VLAN policy with gateway ACLs ([firewall-rules.md](firewall-rules.md)).
+A **TP-Link Omada ER605** gateway routes between VLANs and to the internet. It has an address in each VLAN (`.1`) and enforces the inter-VLAN policy with gateway ACLs ([firewall-rules.md](firewall-rules.md)).
 
 ## VLAN plan
 
@@ -27,6 +27,7 @@ Proxmox guests use VLANs 5 (untagged, native), 30 (`tag=30`), and 40 (`tag=40`).
 | `.1` | Gateway (every VLAN) |
 | `10.12.5.2` | Omada controller |
 | `10.12.5.10` | ops, the admin host (static, set by cloud-init) |
+| `10.12.5.200` | Omada access point (syslog sender) |
 | `10.12.5.11–.14` | Proxmox nodes (darrow `.11`, sevro `.12`, ragnar `.13`, sefi `.14`) |
 | `10.12.5.53–.54` | DNS (dns1 `.53`, dns2 `.54`), named after port 53 |
 | `10.12.30.20` | splunk (SIEM, static) |

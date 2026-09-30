@@ -91,7 +91,7 @@ Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, whe
 | Change | Reason |
 |---|---|
 | Rule 8 "Sec → SIEM": add **DMZ** to its source | `dmz-edge` forwarder → 10.12.30.20:9997. A single documented exception to DMZ isolation ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)) |
-| Gateway → 10.12.30.20:514 (syslog) | Probably not filtered by LAN → LAN rules because it's gateway-originated. Test it, and add a narrow permit only if it's blocked |
+| Gateway → 10.12.30.20:514 (syslog) | ✅ Works with no ACL change. The ER605 sends from its Servers interface (10.12.30.1), so the traffic never crosses VLANs. The controller (10.12.5.2) and access point (10.12.5.200) are covered by rule 2 |
 | New test **T25**: Internal (non-admin) → Splunk :8000 must be blocked | Rule 3 permits Internal → Servers, so the host firewall (ufw) on `splunk` does the blocking |
 
 ## Open items

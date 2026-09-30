@@ -40,6 +40,23 @@ sudo rsyslogd -N1 && sudo systemctl restart rsyslog
 
 Test: `logger -n 127.0.0.1 -P 514 test`. A file should appear under `/var/log/remote/127.0.0.1/` as `syslog:splunk 0640`. Delete it afterwards.
 
+## 5b. Sourcetypes per sender (important)
+Set the sourcetype **in `inputs.conf`, one monitor per sender folder** ([inputs.conf](../../splunk/apps/homelab_base/default/inputs.conf)).
+> ⚠️ An explicit `sourcetype` in `inputs.conf` **outranks** `props.conf` `[source::]` renames. With a single catch-all monitor, the per-sender parsing silently didn't apply, and **neither did the household privacy filter** attached to `omada:eap`, so household flows were indexed. It was caught by testing and fixed by purging.
+
+**Purge and re-index** after fixing parsing or filters:
+```bash
+sudo systemctl stop Splunkd
+sudo -u splunk /opt/splunk/bin/splunk clean eventdata -index netfw -f
+for f in /var/log/remote/*/*.log; do
+  sudo -u splunk /opt/splunk/bin/splunk cmd btprobe -d /opt/splunk/var/lib/splunk/fishbucket/splunk_private_db --file "$f" --reset
+done
+sudo systemctl start Splunkd
+```
+Then verify: `| tstats count where index=netfw by host sourcetype`, and a search showing **0** Internal/Guest records in `omada:eap`.
+
+Install [`cron-remote-cleanup`](../../splunk/server/cron-remote-cleanup) as `/etc/cron.d/remote-syslog-cleanup`, so only today's raw files are kept.
+
 ## 6. Host firewall
 Run [`splunk/server/ufw-rules.sh`](../../splunk/server/ufw-rules.sh) as root. Default deny, and:
 - 8000 from Management and the admin desktop
