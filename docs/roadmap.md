@@ -31,8 +31,8 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 | [x] Indexes, zone lookup, rsyslog intake (`homelab_base` app) | splunk | 7 indexes with retention. Zone lookup verified for one IP per VLAN + external. 514 intake tested |
 | [x] **Omada** remote syslog: gateway ACL events, controller DHCP, access point flows (household-filtered) | gateway, controller, AP | ✅ A kali → Management probe at 11:30:58 was indexed at 11:30:58 as `security → management`, Block. 0 household flows indexed |
 | [x] NTP and time zone (with DST) on the Omada devices (clocks were ~3 min slow). Splunk uses rsyslog's receive time regardless | Omada | ✅ After the fix: gateway within 3 s and AP within 1 s of receive time |
-| [ ] **Technitium** query logs with the household privacy filter | dns1, dns2 | IoT/lab queries indexed. An Internal NOERROR test query **not** indexed, an NXDOMAIN one **is** |
-| [ ] Universal Forwarders: ~~ops~~ ✅, dns1/2, homepage, claude, Proxmox hosts ([installer](../splunk/forwarder/install-uf.sh)) | – | Journald from each host in `linux`. ops: ✅ logger test indexed within seconds |
+| [x] **Technitium** query logs with the household privacy filter | dns1, dns2 | ✅ 7-case filter test all correct. Live: Internal shows only failures, lab/IoT in full, zones resolved |
+| [ ] Universal Forwarders: ~~ops~~ ✅, ~~dns1~~ ✅, ~~dns2~~ ✅, homepage, claude, Proxmox hosts ([installer](../splunk/forwarder/install-uf.sh)) | – | Journald from each host in `linux`. ops: ✅ logger test indexed within seconds |
 | [ ] **dmz-edge** forwarder: Caddy + cloudflared → `web` (rule 8 gets DMZ as a source) | dmz-edge | Real internet requests to demarzo.dev searchable, with the client IP taken from `Cf-Connecting-Ip` |
 | [ ] Zone overview dashboard (deny matrix, DNS by zone, new DHCP devices) | – | Screenshot (aggregates only) |
 | [ ] **Alert queue** + first detections (new device on Management, denied probes toward Management, new IoT domain, DNS tunneling, web probing) | – | Each detection fired by a test |

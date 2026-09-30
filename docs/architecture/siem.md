@@ -65,13 +65,15 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 | Omada controller: DHCP, client events | 10.12.5.2 | `omada:controller` | `netfw` | ✅ 2026-09-30. DHCP → `src_ip`, `src_mac` |
 | Access point: Wi-Fi client flows | 10.12.5.200 | `omada:eap` | `netfw` | ✅ 2026-09-30. **Household flows dropped at index time** |
 | Unknown future senders | any | `syslog:unclassified` | `netfw` | Catch-all, so nothing is silently misparsed |
+| Technitium DNS query logs | dns1, dns2 (UF, `/var/log/technitium/dns/`) | `technitium:query` | `dns` | ✅ 2026-09-30. Fields: `src_ip`, `query`, `query_type`, `reply_code`, `answer`, `query_length`, `src_zone`. ~61k queries/day (~10–12 MB) |
+| System journal | ops, dns1, dns2 (UF) | `journald` | `linux` | ✅ 2026-09-30 |
 
 **Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset (fixed at the source on 2026-09-30 with NTP and a DST-aware time zone). rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
 
 **ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12). A lookup mapping IDs to names will be added as more IDs show up.
 
 ## Privacy rules
-- **Household DNS:** queries from Internal (10.12.10.0/24) and Guest (10.12.99.0/24) are dropped at index time **unless** they failed or were blocked (NXDOMAIN, SERVFAIL, REFUSED, blocked). Security signals stay, and browsing history is never stored ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)).
+- **Household DNS:** queries from Internal (10.12.10.0/24) and Guest (10.12.99.0/24) are dropped at index time **unless** they failed or were blocked (NXDOMAIN, SERVFAIL, REFUSED, or a `0.0.0.0`/`::` answer). Failures that are only search-domain artifacts (`<site>.demarzo.lab` NXDOMAIN) are dropped too, because they'd reveal the site being browsed. Security signals stay, and browsing history is never stored ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)). Verified with a 7-case test file (all correct) and on live data (Internal shows only failures).
 - **Household Wi-Fi flows:** the access point logs every client connection. Records to or from Internal or Guest are sent to `nullQueue` ([`transforms.conf`](../../splunk/apps/homelab_base/default/transforms.conf) `drop_household_eap`). Verified: 0 household records indexed, while ~1,000 were present in the raw stream.
 - **Raw syslog buffer:** `/var/log/remote` holds the unfiltered stream until Splunk reads it (seconds). Only **today's** file is kept ([cron job](../../splunk/server/cron-remote-cleanup)).
 - **Website visitors:** dmz-edge logs contain real visitors' IP addresses. Raw events and screenshots of them are **never** published in this repo, only aggregates.

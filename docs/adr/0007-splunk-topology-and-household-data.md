@@ -16,6 +16,8 @@ Splunk (ADR 0006) has to provide visibility across seven VLANs. Four of them hol
 
 **Addendum (2026-09-30):** the Omada access point turned out to log every Wi-Fi client connection (source → destination IP:port). The same household rule applies: Internal and Guest flows are dropped at index time, and IoT flows are kept. The raw syslog files on the Splunk server, which briefly hold the unfiltered stream, are deleted daily.
 
+**Addendum (2026-09-30, DNS):** household NXDOMAIN answers for `<name>.demarzo.lab` are also dropped. Clients append the search domain, so these failures would otherwise record the real site being browsed.
+
 ## Consequences
 - ✅ All seven VLANs are visible from day one with zero agents on household devices, the same pattern enterprises use for unmanaged and IoT devices.
 - ✅ Household browsing never lands in the SIEM or in public portfolio screenshots. Data minimization is a deliberate, explainable design choice.

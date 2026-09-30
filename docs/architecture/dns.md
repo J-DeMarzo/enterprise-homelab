@@ -12,6 +12,7 @@
 - **Clients** get both servers (`10.12.5.53`, `10.12.5.54`) and the search domain `demarzo.lab`. The `ops` VM and the Ubuntu template set both through cloud-init.
 - **Recursion:** both servers resolve external names for lab clients.
 - **Admin UI:** Technitium web console on port 5380 on each server.
+- **Query logging:** on (Settings → Logging, "Log All Queries", UTC), written to `/var/log/technitium/dns/<date>.log` and shipped to Splunk (`index=dns`) by a Universal Forwarder on each server, with household privacy filtering ([siem.md](siem.md)).
 
 ## Records
 

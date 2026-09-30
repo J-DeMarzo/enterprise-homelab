@@ -78,6 +78,8 @@ pct exec <vmid> -- bash -c "curl -fsSL <same URL> | bash -s -- linux technitium"
 
 Verify: `| tstats count where index=linux by host`, plus a `logger` test message showing up within seconds.
 
+**Technitium:** enable Settings → Logging → *Log All Queries* (UTC) first. On v15+ the logs are in `/var/log/technitium/dns/` (older: `/etc/dns/logs`, `/etc/dns/config/logs`). The installer searches all of them. The first run backfills today's whole log file, so expect a one-time spike in license usage.
+
 ## 7. Verify
 - `server/info`: version and `activeLicenseGroup = Trial`
 - `| rest /services/data/indexes`: the 7 lab indexes with the expected retention
