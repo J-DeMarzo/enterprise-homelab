@@ -34,7 +34,7 @@ USER_UF=$(stat -c %U $UF/bin/splunk)   # splunkfwd on recent packages
 # 2. Local admin (random, root-only) + management port on localhost only
 umask 077
 if [[ ! -f /root/splunkfwd-admin.pass ]]; then
-  openssl rand -base64 24 | tr -d '=+/' | cut -c1-24 > /root/splunkfwd-admin.pass
+  head -c 32 /dev/urandom | base64 | tr -d '=+/\n' | cut -c1-24 > /root/splunkfwd-admin.pass   # no openssl dependency (minimal LXCs)
   printf '[user_info]\nUSERNAME = admin\nPASSWORD = %s\n' "$(cat /root/splunkfwd-admin.pass)" > $UF/etc/system/local/user-seed.conf
 fi
 printf '[settings]\nmgmtHostPort = 127.0.0.1:8089\n' > $UF/etc/system/local/web.conf
