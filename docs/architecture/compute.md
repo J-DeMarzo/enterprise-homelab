@@ -28,7 +28,7 @@ A lower-power node that is mainly the storage server (see [storage.md](storage.m
 | VMIDs | Grouped by role: `1xx` desktops, `2xx` core/security, `3xx` apps, `4xx` Sefi-hosted, `9xxx` templates |
 | Containers | Unprivileged LXC by default |
 | VMs | VirtIO disk/NIC, QEMU guest agent enabled, cloud-init where supported |
-| Templates | Golden images (e.g. `Kali-Master`, VMID 9000) on shared NFS so any node can clone them |
+| Templates | Golden images (`9xxx`) stored on `VM-Templates` (NFS from pax) so any cluster node can clone them. **Always full-cloned to `fast-local`** (`--full --storage fast-local`). Linked clones would have to stay on the template's NFS storage, so running VMs would depend on Sefi |
 | Snapshots | Taken before risky changes. The lab VM `kali` keeps a `Clean` baseline snapshot |
 | Critical guests | `onboot=1`; dns1 also has deletion protection enabled |
 | Notes | Every guest has a Markdown **Notes** card in the Proxmox UI (see below) |
