@@ -55,10 +55,22 @@ EOF
       getent group systemd-journal >/dev/null && usermod -aG systemd-journal "$USER_UF"
       ;;
     technitium)
-      # Technitium writes query logs to <config dir>/logs when "Log All Queries" is on.
-      DIR=""
-      for d in /etc/dns/logs /opt/technitium/dns/logs /var/lib/technitium/dns/logs; do [[ -d $d ]] && DIR=$d && break; done
-      [[ -n $DIR ]] || { echo "Technitium log folder not found. Enable query logging in the web UI first." >&2; exit 1; }
+      # Technitium's log folder moved between versions: <config>/config/logs (old),
+      # /etc/dns/logs, and since v15 a "platform-specific" folder on fresh installs.
+      # Override with TECHNITIUM_LOG_DIR=/path. Otherwise search for its date-named
+      # log files (YYYY-MM-DD.log) in the known roots.
+      DIR=${TECHNITIUM_LOG_DIR:-}
+      if [[ -z $DIR ]]; then
+        for d in /etc/dns/logs /etc/dns/config/logs /var/log/technitium/dns /var/log/technitium /var/log/dns /opt/technitium/dns/logs /var/lib/technitium/dns/logs; do
+          [[ -d $d ]] && DIR=$d && break
+        done
+      fi
+      if [[ -z $DIR ]]; then
+        f=$(find /etc/dns /var/log /opt/technitium /var/lib -xdev -type f -regextype posix-extended \
+              -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}\.log' 2>/dev/null | head -1)
+        [[ -n $f ]] && DIR=$(dirname "$f")
+      fi
+      [[ -n $DIR && -d $DIR ]] || { echo "Technitium log folder not found (searched /etc/dns, /var/log, /opt/technitium, /var/lib). Check Settings > Logging in the web UI, or rerun with TECHNITIUM_LOG_DIR=/path." >&2; exit 1; }
       cat >> "$APP/inputs.conf" <<EOF
 [monitor://$DIR]
 index = dns
