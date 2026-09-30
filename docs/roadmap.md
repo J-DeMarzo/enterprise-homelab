@@ -17,9 +17,9 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [ ] **Least-privilege API token** for `claude-mcp@pve`: it currently holds near-admin rights (can create users, allocate SDN, and so on). Replace it with a custom role scoped to VM, storage, and guest-agent operations. Record the change as an ADR
 - [ ] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB) from a verified cloud image. Build a golden cloud-init template (VMID 9001) on TheRising for Splunk and future VMs. Runbook
 
-## Phase 2: Safe to attack
-- [x] **Enforce default-deny between VLANs**: IP groups corrected, DNS rule limited to port 53, default-deny enabled. *Evidence:* [before/after test table](architecture/firewall-rules.md#test-results). 16/18 pass, and the ACLs are verified stateful
-- [ ] Restrict the gateway's admin UI to Management (tests T6/T7 still open from the Security VLAN)
+## Phase 2: Safe to attack ✅
+- [x] **Enforce default-deny between VLANs**: IP groups corrected, DNS rule limited to port 53, default-deny enabled. *Evidence:* [before/after test table](architecture/firewall-rules.md#test-results). all 21 executed tests pass, and the ACLs are verified stateful
+- [x] Block the gateway's admin UI from every non-management VLAN (rule 11). *Evidence:* T6/T7/T23 blocked, internet and DNS unaffected (T24)
 - [ ] Read-only credentials for homepage's widgets (Proxmox `PVEAuditor`, Omada viewer, Technitium read-only). Homepage can reach management APIs through rule 9
 
 ## Phase 3: Visibility (SIEM)

@@ -68,7 +68,7 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 |---|---|---|
 | 0 | Documentation foundation | ✅ Done |
 | 1 | Hygiene: guest metadata, tags, admin host in the management zone | ✅ Mostly done |
-| 2 | Safe to attack: default-deny between VLANs, [tested](docs/architecture/firewall-rules.md#test-results) | ✅ Mostly done (gateway UI pending) |
+| 2 | Safe to attack: default-deny between VLANs, [tested](docs/architecture/firewall-rules.md#test-results) | ✅ Done |
 | 3 | Visibility: Splunk plus log sources | ⏳ Next |
 | 4 | Targets: Active Directory with Sysmon | 🗓️ Planned |
 | 5 | SOC workflow evidence: emulate → detect → investigate → write up | 🗓️ Planned |

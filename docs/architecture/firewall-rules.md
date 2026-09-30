@@ -1,9 +1,9 @@
 # Firewall rules (Omada gateway ACLs)
 
-**Status:** default-deny between VLANs is **enforced** as of 2026-09-30. 18 of 20 tests pass. The 2 failures are the gateway's own admin UI, which LAN → LAN ACLs don't cover (see [open items](#open-items)).
+**Status:** default-deny between VLANs is **enforced** as of 2026-09-30. **All 21 executed tests pass.** Two more (T11/T12) are pending the Splunk deployment.
 
 ## Design
-An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs top-down and the first match wins. Rules 1–9 permit specific flows, rule 10 isolates Guest, and rule 11 denies everything else between VLANs. Management isn't in rule 11's source list, so it keeps full reach. The policy matrix is in [network.md](network.md#segmentation-policy).
+An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs top-down and the first match wins. Rules 1–9 permit specific flows, rule 10 isolates Guest, rule 11 blocks the gateway's own admin UI, and rule 12 denies everything else between VLANs. Management isn't in the deny rules' source lists, so it keeps full reach. The policy matrix is in [network.md](network.md#segmentation-policy).
 
 **The ACLs are stateful** (verified by T8): replies to permitted connections are allowed back, so a deny on A → B doesn't break connections that B starts to A.
 
@@ -21,9 +21,12 @@ An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs to
 | 8 | Sec → SIEM | Permit | TCP | Security | IP-Port group `SIEM In` | Off |
 | 9 | Dashboard → Mgmt APIs | Permit | TCP | IP group `Dashboard` | IP-Port group `Dashboard Targets` | Off |
 | 10 | GUEST → RFC1918 | Deny | All | Guest | All other networks | On |
-| 11 | DENY Inter-LAN | Deny | All | Internal, IoT, Guest, DMZ, Security, Servers | IP group `All VLAN` | On |
+| 11 | DENY Gateway UI | Deny | **TCP** | Internal, IoT, Servers, Security, DMZ, Guest | Type: **Gateway Management Page** | On |
+| 12 | DENY Inter-LAN | Deny | All | Internal, IoT, Guest, DMZ, Security, Servers | IP group `All VLAN` | On |
 
 Rule 9 was added on 2026-09-30, after enabling default-deny broke homepage's status checks for the Omada controller and Technitium (see T20).
+
+Rule 11 closes a gap LAN → LAN rules can't cover: traffic addressed to the gateway's *own* interface IPs (10.12.x.1) isn't routed between VLANs, so rule 12 never sees it. The "Gateway Management Page" destination type matches every packet sent to the gateway itself. It's limited to **TCP** because "All" would also block DNS and other traffic devices send to their gateway, and TP-Link users report losing internet access that way. The gateway is managed through the Omada controller (10.12.5.2) anyway.
 
 Logging on the deny rules sends blocked traffic to the gateway log. Once gateway syslog reaches Splunk (roadmap Phase 3), denied connections out of the Security VLAN become detection data: lateral-movement attempts from the lab show up as firewall events.
 
@@ -41,7 +44,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | `Dashboard Targets` | IP-Port | 10.12.5.2 · 443 (Omada controller). 10.12.5.53, 10.12.5.54 · 5380 (Technitium API) | Rule 9 |
 | `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port 8006 | Rule 7 |
 | `SIEM In` | IP-Port | 10.12.30.20 · port 9997. Add :8089 if a Splunk deployment server is used | Rule 8 |
-| `All VLAN` | IP | 10.12.0.0/16 | Rule 11 |
+| `All VLAN` | IP | 10.12.0.0/16 | Rule 12 |
 
 `ops` (10.12.5.10) needs no group entries because it's in Management ([ADR 0005](../adr/0005-admin-hosts-in-management-zone.md)).
 
@@ -56,8 +59,8 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | T3 | kali → dns1 admin UI | 5380 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
 | T4 | kali → dns1 DNS (TCP connect and real lookups) | 53 | ✅ | OPEN | OPEN, resolves internal and external names | ✅ |
 | T5 | kali → ops SSH | 22 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
-| T6 | kali → gateway UI (10.12.5.1) | 443 | ❌ | 🔴 OPEN | 🔴 OPEN | ❌ |
-| T7 | kali → gateway UI (10.12.40.1) | 443 | ❌ | 🔴 OPEN | 🔴 OPEN | ❌ |
+| T6 | kali → gateway UI (10.12.5.1) | 443, 80 | ❌ | 🔴 OPEN | BLOCKED after rule 11 was added | ✅ |
+| T7 | kali → gateway UI (10.12.40.1) | 443, 80 | ❌ | 🔴 OPEN | BLOCKED after rule 11 was added | ✅ |
 | T8 | ops → kali (temporary listener) | 8080 | ✅ | n/a | HTTP 200. **Proves the ACLs are stateful** | ✅ |
 | T9 | kali → homepage (Servers) | 3000 | ❌ | 🔴 OPEN | BLOCKED | ✅ |
 | T10 | kali → internet | 443 | ✅ | OPEN | OPEN | ✅ |
@@ -72,11 +75,13 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | T19 | ops → homepage, claude (Mgmt → Servers) | 3000, 22 | ✅ | n/a | OPEN | ✅ |
 | T20 | homepage → Omada controller, Technitium API (homepage status checks) | 443, 5380 | ✅ | OPEN | Timed out after default-deny. **200 after rule 9 was added** | ✅ |
 | T21 | claude → Omada controller, Technitium API (same VLAN, not in `Dashboard`) | 443, 5380 | ❌ | n/a | BLOCKED | ✅ |
+| T22 | kali → Omada controller (10.12.5.2) | 443 | ❌ | n/a | BLOCKED | ✅ |
+| T23 | claude → gateway UI (10.12.30.1, 10.12.5.1) | 443 | ❌ | n/a | BLOCKED | ✅ |
+| T24 | kali and claude → internet and DNS, after rule 11 (regression check for the TCP-only choice) | 443, 53 | ✅ | OPEN | OPEN | ✅ |
 
 Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, where I can't run tests.
 
 ## Open items
-- **Gateway admin UI reachable from the Security VLAN (T6, T7).** Traffic to the gateway's own addresses isn't routed between VLANs, so LAN → LAN ACLs don't apply to it. Fix: restrict the gateway's management access to the Management network (and Admin Terminals) in the Omada controller, then rerun T6/T7.
 - **T11/T12** once Splunk is deployed at 10.12.30.20.
 - **Dashboard credentials:** rule 9 makes homepage a pivot point. It stores API credentials for Proxmox, Omada, and Technitium and can reach all three. Move it to read-only credentials (Proxmox `PVEAuditor` token, Omada viewer, read-only Technitium user).
 - **Log injection:** Security can send to Splunk :9997, so a compromised lab host could forge log events. Accepted for the lab. Future hardening: forwarder TLS with client certificates.
