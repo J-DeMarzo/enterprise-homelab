@@ -19,6 +19,25 @@ An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs to
 | 8 | GUEST → RFC1918 | Deny | All | Guest | All internal networks | ✅ | |
 | 9 | DENY Inter-LAN | Deny | All | Internal, IoT, Guest, DMZ, Security, Servers | IP group `All VLAN` | ❌ **Disabled** | The default-deny backstop. With it off, anything not matched above is allowed |
 
+## Target rule set
+
+What the ACL list should look like after the change plan. Changes from the current rules are in **bold**.
+
+| # | Name | Action | Protocol | Source | Destination | Log |
+|---|---|---|---|---|---|---|
+| 1 | **Admin Terminals → ALL** (renamed) | Permit | All | IP group `Admin Terminals` | All 7 networks | Off |
+| 2 | MGMT → ALL | Permit | All | Management | Internal, IoT, Servers, Security, DMZ, Guest | Off |
+| 3 | INT → Servers | Permit | All | Internal | Servers | Off |
+| 4 | **INT → IoT** *(optional, see open decisions)* | Permit | All | Internal | IoT | Off |
+| 5 | ALLOW DNS | Permit | TCP+UDP | Mgmt, Internal, IoT, Servers, Security, DMZ | **IP-Port group `DNS` (:53)** | Off |
+| 6 | Servers → NFS | Permit | TCP+UDP | Servers | IP-Port group `NFS` | Off |
+| 7 | Allow Proxmox Access | Permit | TCP | IP group **`Proxmox Clients`** (renamed from `Proxmox 8006`) | IP-Port group `Proxmox Port` | On |
+| 8 | **Sec → SIEM** (renamed) | Permit | TCP | Security | IP-Port group `SIEM In` | Off |
+| 9 | GUEST → RFC1918 | Deny | All | Guest | All other networks | **On** |
+| 10 | DENY Inter-LAN | Deny | All | Internal, IoT, Guest, DMZ, Security, Servers | IP group `All VLAN` | **On** · **Enabled** |
+
+Logging on the deny rules sends blocked traffic to the gateway log. Once gateway syslog reaches Splunk (roadmap Phase 3), denied connections out of the Security VLAN become detection data: lateral-movement attempts from the lab show up as firewall events.
+
 ## IP groups: target definitions
 
 Enter these in Omada under the IP group profiles. Hosts listed by address need a **static IP or DHCP reservation**.
@@ -26,20 +45,20 @@ Enter these in Omada under the IP group profiles. Hosts listed by address need a
 | Group | Type | Members | Used by |
 |---|---|---|---|
 | `Admin Terminals` | IP | Your admin desktop (`demarzoDesk`, reserved IP) | Rule 1 |
-| `DNS` → change to **IP-Port** | IP-Port | 10.12.5.53, 10.12.5.54 · port **53** | Rule 4 |
-| `NFS` | IP-Port | 10.12.5.14 · port **2049** (NFSv4) | Rule 5 |
-| `Proxmox 8006` | IP | 10.12.30.101 (`claude`, needs a reservation). Add 10.12.30.100 (`homepage`) only if its widgets query Proxmox | Rule 6 |
-| `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port **8006** | Rule 6 |
-| `SIEM In` | IP-Port | 10.12.30.20 · port **9997** | Rule 7 |
-| `All VLAN` | IP | 10.12.0.0/16 (all seven VLANs). Or all RFC 1918 ranges to also cover any upstream/ISP LAN | Rule 9 |
+| `DNS` → change to **IP-Port** | IP-Port | 10.12.5.53, 10.12.5.54 · port **53** | Rule 5 |
+| `NFS` | IP-Port | 10.12.5.14 · port **2049** (NFSv4) | Rule 6 |
+| `Proxmox Clients` (rename of `Proxmox 8006`) | IP | 10.12.30.101 (`claude`, needs a reservation). Add 10.12.30.100 (`homepage`) only if its widgets query Proxmox | Rule 7 |
+| `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port **8006** | Rule 7 |
+| `SIEM In` | IP-Port | 10.12.30.20 · port **9997** | Rule 8 |
+| `All VLAN` | IP | 10.12.0.0/16 (all seven VLANs). Or all RFC 1918 ranges to also cover any upstream/ISP LAN | Rule 10 |
 
 `ops` (10.12.5.10) needs no group entries because it's in Management ([ADR 0005](../adr/0005-admin-hosts-in-management-zone.md)).
 
 ## Change plan
-1. Correct the IP groups (table above). Make rule 4's destination the `DNS` **IP-Port** group (port 53).
+1. Correct the IP groups (table above). Make the ALLOW DNS rule's destination the `DNS` **IP-Port** group (port 53). Reorder and rename to match the [target rule set](#target-rule-set).
 2. Reserve IPs for the admin desktop and `claude` (10.12.30.101).
 3. Decide the [open decisions](#open-decisions).
-4. **Enable rule 9.** Rollback is the same toggle.
+4. **Enable DENY Inter-LAN** (target rule 10) with logging on. Rollback is the same toggle.
 5. Run the test plan below and record the results.
 
 ## Open decisions
