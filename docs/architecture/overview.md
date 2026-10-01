@@ -27,7 +27,7 @@ See the generated [inventory](../inventory.md). In short:
 | Guest | Role | Where |
 |---|---|---|
 | dns1 / dns2 | Internal DNS (Technitium) | sevro / sefi |
-| ops | Headless admin jump box and agent workstation: Claude Code, herdr, the Proxmox MCP (Ubuntu 24.04, rebuilt 2026-09-30). Ansible/Terraform control node when that resumes ([ADR 0006](../adr/0006-soc-focus-with-splunk.md)). Pushes the Claude plan-usage feed to homepage ([runbook](../runbooks/claude-usage-feed.md)) | sefi |
+| ops | Headless admin jump box and agent workstation: herdr running Claude Code, Codex, Copilot, Grok and OpenCode ([runbook](../runbooks/agent-clis.md)), the Proxmox MCP (Ubuntu 24.04, rebuilt 2026-09-30). Ansible/Terraform control node when that resumes ([ADR 0006](../adr/0006-soc-focus-with-splunk.md)). Pushes the Claude plan-usage feed to homepage ([runbook](../runbooks/claude-usage-feed.md)) | sefi |
 | ubuntu-2404-ci | Golden Ubuntu template (9001) for Splunk and future VMs | sevro (disk on pax) |
 | dmz-edge | Internet-facing edge in the DMZ: Caddy + cloudflared (Cloudflare Tunnel) for demarzo.dev | sefi |
 | splunk | SIEM: Splunk Enterprise (VMID 151, built from template 9001) | darrow |
