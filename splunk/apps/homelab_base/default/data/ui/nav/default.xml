@@ -1,0 +1,7 @@
+<nav search_view="search">
+  <view name="zone_overview" default="true" />
+  <view name="search" />
+  <collection label="Reports">
+    <a href="reports">Reports</a>
+  </collection>
+</nav>

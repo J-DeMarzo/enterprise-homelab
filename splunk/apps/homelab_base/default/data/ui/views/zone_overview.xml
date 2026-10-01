@@ -1,0 +1,452 @@
+<dashboard version="2" theme="dark">
+  <label>Zone overview</label>
+  <description>What the seven VLANs are doing, from the gateway, DNS, and forwarder data. Aggregates only.</description>
+  <definition><![CDATA[
+{
+  "title": "Zone overview",
+  "description": "What the seven VLANs are doing, from the gateway, DNS, and forwarder data. Aggregates only.",
+  "visualizations": {
+    "viz_1": {
+      "type": "splunk.singlevalue",
+      "title": "Inter-VLAN denies",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_1"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_2": {
+      "type": "splunk.singlevalue",
+      "title": "Sources denied",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_2"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_3": {
+      "type": "splunk.singlevalue",
+      "title": "DNS queries indexed",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_3"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_4": {
+      "type": "splunk.singlevalue",
+      "title": "Hosts reporting (last hour)",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_4"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_5": {
+      "type": "splunk.table",
+      "title": "Deny matrix: source zone (rows) → destination zone",
+      "options": {
+        "count": 10
+      },
+      "description": "Gateway ACL blocks. Same-zone cells are traffic to the gateway's own interface (rule 11).",
+      "dataSources": {
+        "primary": "ds_5"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_6": {
+      "type": "splunk.column",
+      "title": "Denies over time by rule",
+      "options": {
+        "stackMode": "stacked"
+      },
+      "dataSources": {
+        "primary": "ds_6"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_7": {
+      "type": "splunk.area",
+      "title": "DNS queries by source zone",
+      "options": {
+        "stackMode": "stacked"
+      },
+      "description": "Internal and Guest are indexed only when the lookup failed or was blocked (ADR 0007).",
+      "dataSources": {
+        "primary": "ds_7"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_8": {
+      "type": "splunk.table",
+      "title": "Failed or blocked lookups by zone",
+      "options": {},
+      "description": "Technitium answers blocked domains with NXDOMAIN, so blocks count as failures.",
+      "dataSources": {
+        "primary": "ds_8"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_9": {
+      "type": "splunk.bar",
+      "title": "New DHCP devices in the last 24 h, by zone",
+      "options": {},
+      "description": "MAC first seen in the last 24 h, compared with the previous 7 days.",
+      "dataSources": {
+        "primary": "ds_9"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_10": {
+      "type": "splunk.table",
+      "title": "Gateway configuration changes (7 days)",
+      "options": {},
+      "description": "Omada controller audit events: ACLs, groups, and other config edits.",
+      "dataSources": {
+        "primary": "ds_10"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_11": {
+      "type": "splunk.table",
+      "title": "Data health: minutes since the last event, per host",
+      "options": {
+        "count": 20
+      },
+      "description": "Forwarders send a heartbeat (_internal) every few seconds even when the host is quiet. Syslog senders (gateway, controller, AP) have none.",
+      "dataSources": {
+        "primary": "ds_11"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "ds_1": {
+      "type": "ds.search",
+      "name": "Inter-VLAN denies",
+      "options": {
+        "query": "index=netfw sourcetype=omada:gateway action=Block | stats count"
+      }
+    },
+    "ds_2": {
+      "type": "ds.search",
+      "name": "Sources denied",
+      "options": {
+        "query": "index=netfw sourcetype=omada:gateway action=Block | stats dc(src_ip)"
+      }
+    },
+    "ds_3": {
+      "type": "ds.search",
+      "name": "DNS queries indexed",
+      "options": {
+        "query": "index=dns | stats count"
+      }
+    },
+    "ds_4": {
+      "type": "ds.search",
+      "name": "Hosts reporting (last hour)",
+      "options": {
+        "query": "| tstats dc(host) where index IN (netfw, dns, linux, web) earliest=-1h",
+        "queryParameters": {
+          "earliest": "-1h",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_5": {
+      "type": "ds.search",
+      "name": "Deny matrix: source zone (rows) → destination zone",
+      "options": {
+        "query": "index=netfw sourcetype=omada:gateway action=Block | chart count over src_zone by dest_zone | rename src_zone AS \"source zone\""
+      }
+    },
+    "ds_6": {
+      "type": "ds.search",
+      "name": "Denies over time by rule",
+      "options": {
+        "query": "index=netfw sourcetype=omada:gateway action=Block | fillnull value=\"unmapped rule id\" rule | timechart count by rule"
+      }
+    },
+    "ds_7": {
+      "type": "ds.search",
+      "name": "DNS queries by source zone",
+      "options": {
+        "query": "index=dns | timechart count by src_zone"
+      }
+    },
+    "ds_8": {
+      "type": "ds.search",
+      "name": "Failed or blocked lookups by zone",
+      "options": {
+        "query": "index=dns | stats count AS queries count(eval(reply_code!=\"NoError\")) AS failed by src_zone | eval failed_pct=round(failed/queries*100,1) | eval note=if(src_zone IN (\"internal\",\"guest\"), \"failures only (privacy filter)\", \"\") | sort - queries"
+      }
+    },
+    "ds_9": {
+      "type": "ds.search",
+      "name": "New DHCP devices in the last 24 h, by zone",
+      "options": {
+        "query": "index=netfw sourcetype=omada:controller \"DHCP Server allocated\" | stats min(_time) AS first_seen latest(src_zone) AS zone by src_mac | where first_seen>=relative_time(now(),\"-24h\") | stats count AS new_devices by zone",
+        "queryParameters": {
+          "earliest": "-7d",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_10": {
+      "type": "ds.search",
+      "name": "Gateway configuration changes (7 days)",
+      "options": {
+        "query": "index=netfw sourcetype=omada:controller \"operation\" | rex \"\\\"operation\\\":\\\"(?<operation>[^\\\"]+)\\\"\" | table _time operation",
+        "queryParameters": {
+          "earliest": "-7d",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_11": {
+      "type": "ds.search",
+      "name": "Data health: minutes since the last event, per host",
+      "options": {
+        "query": "| tstats max(_time) AS last where index IN (netfw, dns, linux, web, _internal) by index host | eval index=if(index=\"_internal\", \"forwarder_heartbeat\", index), minutes=round((now()-last)/60,0) | xyseries host index minutes | eval status=case(isnotnull(forwarder_heartbeat) AND forwarder_heartbeat>5, \"FORWARDER SILENT\", isnull(forwarder_heartbeat) AND netfw>60, \"SYSLOG SILENT\", true(), \"ok\") | table host status forwarder_heartbeat netfw dns linux web | sort host",
+        "queryParameters": {
+          "earliest": "-24h",
+          "latest": "now"
+        }
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "inputs": {
+    "input_time": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": {
+      "width": 1440,
+      "height": 1320
+    },
+    "structure": [
+      {
+        "item": "viz_1",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_2",
+        "type": "block",
+        "position": {
+          "x": 360,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_3",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_4",
+        "type": "block",
+        "position": {
+          "x": 1080,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_5",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 110,
+          "w": 720,
+          "h": 300
+        }
+      },
+      {
+        "item": "viz_6",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 110,
+          "w": 720,
+          "h": 300
+        }
+      },
+      {
+        "item": "viz_7",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 410,
+          "w": 720,
+          "h": 300
+        }
+      },
+      {
+        "item": "viz_8",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 410,
+          "w": 720,
+          "h": 300
+        }
+      },
+      {
+        "item": "viz_9",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 710,
+          "w": 720,
+          "h": 280
+        }
+      },
+      {
+        "item": "viz_10",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 710,
+          "w": 720,
+          "h": 280
+        }
+      },
+      {
+        "item": "viz_11",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 990,
+          "w": 1440,
+          "h": 330
+        }
+      }
+    ],
+    "globalInputs": [
+      "input_time"
+    ]
+  }
+}
+  ]]></definition>
+</dashboard>

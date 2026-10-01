@@ -76,7 +76,18 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 
 **dmz-edge specifics:** Caddy writes its log with mode 0600 by default. The Caddyfile (in the site's own repo) sets `mode 0640`, and the forwarder's user is in group `caddy`. cloudflared logs to journald, so it reaches `linux` with the rest of the host's journal. Copying it to `web` as well would only duplicate it. The forwarder needs about 90 MiB, and the 512 MiB container still has ~360 MiB free.
 
-**ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12), `1421851197` = DENY Gateway UI (rule 11). A lookup mapping IDs to names will be added as more IDs show up.
+**ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12), `1421851197` = DENY Gateway UI (rule 11). The [`omada_acl_rules`](../../splunk/apps/homelab_base/lookups/omada_acl_rules.csv) lookup turns them into a `rule` field automatically. Add a row whenever a new ID appears (the dashboard shows it as "unmapped rule id").
+
+**Controller audit events:** the controller also logs its own configuration changes as JSON (`"operation":"Gateway ACL … deleted successfully …"`). That makes ACL and group edits searchable, including the removal of the undocumented rules found in T36.
+
+## Dashboards
+In the **Homelab SOC** app (`homelab_base`), Dashboard Studio, defined in [`default/data/ui/views/`](../../splunk/apps/homelab_base/default/data/ui/views/):
+
+| Dashboard | Panels |
+|---|---|
+| **Zone overview** (app home) | Deny count and distinct denied sources · **deny matrix** (source zone × destination zone) · denies over time by ACL rule · DNS queries by zone · failed/blocked lookups by zone · new DHCP devices (24 h) by zone · gateway config changes · **data health** (forwarder heartbeat and last event per index, for every host) |
+
+Data health uses each forwarder's `_internal` heartbeat rather than its last log line, so a quiet host isn't reported as down. The syslog-only senders (gateway, controller, AP) have no heartbeat and are flagged after an hour of silence.
 
 ## Privacy rules
 - **Household DNS:** queries from Internal (10.12.10.0/24) and Guest (10.12.99.0/24) are dropped at index time **unless** they failed or were blocked (NXDOMAIN, SERVFAIL, REFUSED, or a `0.0.0.0`/`::` answer). Failures that are only search-domain artifacts (`<site>.demarzo.lab` NXDOMAIN) are dropped too, because they'd reveal the site being browsed. Security signals stay, and browsing history is never stored ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)). Verified with a 7-case test file (all correct) and on live data (Internal shows only failures).
