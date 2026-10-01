@@ -1,6 +1,6 @@
-# Runbook: Claude usage feed (ops → homepage)
+# Runbook: AI usage feed (ops → homepage)
 
-**What:** the "Claude usage" card at the top of homepage (session %, weekly %, reset times, last update).
+**What:** the **AI Usage** row at the top of homepage, with cards for Claude (session % and weekly %), Codex (ChatGPT plan window %), Copilot (premium requests) and OpenCode (7-day sessions, tokens and cost). Each card shows reset times and its last update.
 **When:** rebuilding `ops` or `homepage`, or the card's **Updated** value keeps getting older.
 
 ## How it works
@@ -11,12 +11,13 @@ Homepage (Servers, VLAN 30) can't open connections into Management ([firewall ru
 |---|---|---|
 | `claude-usage-push.timer` (user unit, every 60 s) | ops | Runs `~/claude-usage/push.py` |
 | `push.py` + `server.py` | ops | `fetch()` (in `server.py`) reads the OAuth token from `~/.claude/.credentials.json` and calls `api.anthropic.com/api/oauth/usage`. `push.py` adds an `updated` timestamp, and on failure re-sends the last good data (`last.json`) with `ok: false` |
+| `providers.py` | ops | Codex: `~/.codex/auth.json` → `chatgpt.com/backend-api/wham/usage`. Copilot: `~/.copilot/config.json` → `api.github.com/copilot_internal/user`. OpenCode: read-only query of `~/.local/share/opencode/opencode.db`. Each result goes under its own key in `usage.json`, with its own `updated`/`ok`, and falls back to the last good value independently. Claude's fields stay top-level |
 | Key `~/.ssh/claude-usage-push` | ops | Used only for this job. `push.py` runs ssh with `-F none`, so the admin key `demarzo@ops` is never offered |
 | Forced-command entry in `~demarzo/.ssh/authorized_keys` | homepage | The key can only write `usage.json`. `restrict` disables shells, PTYs and forwarding. Empty input is rejected |
 | `claude-usage-web.service` (system unit) | homepage | `python3 -m http.server` on **127.0.0.1:8787** only, serving `/var/lib/claude-usage/` |
-| `Claude usage` card, `Claude` group | homepage | customapi widget → `http://127.0.0.1:8787/usage.json` |
+| `AI Usage` group (Claude, Codex, Copilot, OpenCode cards) | homepage | customapi widgets → `http://127.0.0.1:8787/usage.json`; the non-Claude cards map nested fields, e.g. `field: { codex: used_pct }` |
 
-Token freshness: Claude Code on `ops` refreshes the token whenever it runs. If it isn't used for long enough that the token expires, pushes report `ok: false` and the card's **Updated** shows how old the data is.
+Token freshness: each CLI on `ops` refreshes its own token whenever it runs (the feed only reads tokens; it never refreshes or rewrites them). If a tool isn't used for long enough that the token expires, pushes report `ok: false` and the card's **Updated** shows how old the data is.
 
 Files: [`scripts/claude-usage/`](../../scripts/claude-usage/).
 
@@ -35,19 +36,19 @@ After a homepage rebuild, its host key changes. Update `ops:~/.ssh/known_hosts` 
 ## Rebuild: ops side
 ```bash
 mkdir -p ~/claude-usage ~/.config/systemd/user
-cp server.py push.py ~/claude-usage/
+cp server.py push.py providers.py ~/claude-usage/
 cp claude-usage-push.service claude-usage-push.timer ~/.config/systemd/user/
 ssh-keygen -t ed25519 -N "" -C claude-usage-push@ops -f ~/.ssh/claude-usage-push   # then update homepage's authorized_keys
 sudo loginctl enable-linger demarzo          # timers keep running with no one logged in
 systemctl --user daemon-reload && systemctl --user enable --now claude-usage-push.timer
 ```
-Claude Code must be signed in on `ops` (`~/.claude/.credentials.json`).
+Claude Code must be signed in on `ops` (`~/.claude/.credentials.json`). For the other cards, Codex, Copilot CLI and OpenCode must be signed in too. A tool that isn't signed in only marks its own card `ok: false`.
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
 | **Updated** keeps getting older | On ops: `journalctl --user -u claude-usage-push -n 20` |
-| `"ok": false` with a 401 error | Token expired. Run Claude Code on ops once to refresh it |
+| `"ok": false` with a 401 error | Token expired. Run that tool (Claude Code / `codex` / `copilot`) on ops once to refresh it. Check which key failed with `jq . ~/claude-usage/last.json` |
 | *Permission denied (publickey)* | Key or `from=` mismatch in homepage's `authorized_keys` |
 | Card shows an API error | On homepage: `systemctl status claude-usage-web`; `curl -s 127.0.0.1:8787/usage.json` |
