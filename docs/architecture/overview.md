@@ -31,6 +31,7 @@ See the generated [inventory](../inventory.md). In short:
 | ubuntu-2404-ci | Golden Ubuntu template (9001) for Splunk and future VMs | sevro (disk on pax) |
 | dmz-edge | Internet-facing edge in the DMZ: Caddy + cloudflared (Cloudflare Tunnel) for demarzo.dev | sefi |
 | splunk | SIEM: Splunk Enterprise (VMID 151, built from template 9001) | darrow |
+| llm | Local LLM: Ollama CPU-only with `qwen3.5:4b` (LXC 100), API reachable from ops only ([ADR 0010](../adr/0010-local-llm-host.md), [runbook](../runbooks/deploy-llm.md)) | darrow |
 | homepage | Lab dashboard | ragnar |
 | bots | Discord Proxmox bot (scoped `discord-bot@pve` token). Formerly `claude`, the agent workstation | ragnar |
 | fantasy | Dev/runtime host for the fantasy-app project (LXC 201) | sevro |

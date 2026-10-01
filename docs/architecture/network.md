@@ -32,6 +32,7 @@ Proxmox guests use VLANs 5 (untagged, native), 30 (`tag=30`), and 40 (`tag=40`).
 | `10.12.5.53–.54` | DNS (dns1 `.53`, dns2 `.54`), named after port 53 |
 | `10.12.30.20` | splunk (SIEM, static) |
 | `10.12.30.30` | fantasy (fantasy-app dev/runtime, LXC 201, static) |
+| `10.12.30.40` | llm (Ollama, LXC 100, static) |
 | `10.12.50.10` | dmz-edge (Caddy + cloudflared for demarzo.dev) |
 | `.100+` | DHCP leases (observed) |
 

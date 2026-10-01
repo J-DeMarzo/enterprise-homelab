@@ -11,7 +11,7 @@ All of them install per user into `~/.local/bin` (no Node.js, no sudo). herdr's 
 | Codex | Release tarballs `codex-x86_64-unknown-linux-musl` **and** `codex-code-mode-host-…` from `openai/codex`, both into `~/.local/bin` | `codex login --device-auth` | ChatGPT Free | `codex` |
 | Copilot CLI | `curl -fsSL https://gh.io/copilot-install \| bash` (checksummed) | `copilot login`, **in a real terminal** (see below) | Copilot Student | `copilot` |
 | Grok Build | `curl -fsSL https://x.ai/cli/install.sh \| bash` (adds a PATH block to `.bashrc`, links `grok` and `agent` into `~/.local/bin`) | `grok login --device-auth` | Grok free | `grok` |
-| OpenCode | `curl -fsSL https://opencode.ai/install \| bash -s -- --no-modify-path`, then link `~/.opencode/bin/opencode` into `~/.local/bin` | `opencode auth login` | Free OpenCode models | `opencode` (state + session restore) |
+| OpenCode | `curl -fsSL https://opencode.ai/install \| bash -s -- --no-modify-path`, then link `~/.opencode/bin/opencode` into `~/.local/bin` | `opencode auth login` | Free OpenCode models, plus the local model on `llm` ([runbook](deploy-llm.md#6-opencode-on-ops)) | `opencode` (state + session restore) |
 
 Credentials live in each tool's home directory with mode `600`: `~/.codex/auth.json`, `~/.copilot/config.json`, `~/.grok/auth.json`, `~/.local/share/opencode/auth.json`.
 
