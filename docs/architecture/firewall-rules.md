@@ -18,7 +18,7 @@ An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs to
 | 5 | ALLOW DNS | Permit | TCP+UDP | Mgmt, Internal, IoT, Servers, Security, DMZ | IP-Port group `DNS` (:53) | Off |
 | 6 | Servers → NFS | Permit | TCP+UDP | Servers | IP-Port group `NFS` | Off |
 | 7 | Allow Proxmox Access | Permit | TCP | IP group `Proxmox Clients` | IP-Port group `Proxmox Port` | On |
-| 8 | Sec → SIEM | Permit | TCP | Security | IP-Port group `SIEM In` | Off |
+| 8 | Sec → SIEM | Permit | TCP | Security, DMZ | IP-Port group `SIEM In` | Off |
 | 9 | Dashboard → Mgmt APIs | Permit | TCP | IP group `Dashboard` | IP-Port group `Dashboard Targets` | Off |
 | 10 | GUEST → RFC1918 | Deny | All | Guest | All other networks | On |
 | 11 | DENY Gateway UI | Deny | **TCP** | Internal, IoT, Servers, Security, DMZ, Guest | Type: **Gateway Management Page** | On |
@@ -43,7 +43,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | `Dashboard` | IP | 10.12.30.100 (`homepage`) | Rule 9 |
 | `Dashboard Targets` | IP-Port | 10.12.5.2 · 443 (Omada controller). 10.12.5.53, 10.12.5.54 · 5380 (Technitium API) | Rule 9 |
 | `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port 8006 | Rule 7 |
-| `SIEM In` | IP-Port | 10.12.30.20 · port 9997. Add :8089 if a Splunk deployment server is used | Rule 8 |
+| `SIEM In` | IP-Port | 10.12.30.20 · port 9997. ⚠️ T40 suggests the gateway's group also holds **8089**, see below | Rule 8 |
 | `All VLAN` | IP | 10.12.0.0/16 | Rule 12 |
 
 `ops` (10.12.5.10) needs no group entries because it's in Management ([ADR 0005](../adr/0005-admin-hosts-in-management-zone.md)).
@@ -100,6 +100,17 @@ The admin work moved from `claude` (Servers) to `ops` (Management), 301 became `
 | T37 | bots, fantasy → Splunk SSH (ufw no longer allows Servers); ops → Splunk SSH | 22 | ❌ / ✅ | BLOCKED (timeouts, ufw drop) / OPEN | ✅ |
 | T38 | bots after the rename: T13, T14, T16, T21, T23, T28, T30 re-run from 10.12.30.101 | various | as before | Proxmox API OPEN (rule 7), everything else into Management BLOCKED | ✅ |
 
+### Retests after DMZ joined rule 8 (2026-10-01)
+Run from `dmz-edge` (10.12.50.10). Each blocked attempt was checked in Splunk (`index=netfw src_ip=10.12.50.10`) to see which control dropped it.
+
+| # | From → To | Port | Expected | Result | Pass |
+|---|---|---|---|---|---|
+| T39 | dmz-edge → Splunk forwarding | 9997 | ✅ | OPEN. The forwarder connects and Caddy logs are indexed | ✅ |
+| T40 | dmz-edge → Splunk web UI, SSH, PostgreSQL / mgmt API | 8000, 22, 5432 / 8089 | ❌ | BLOCKED by rule 12 (gateway logged it) / BLOCKED by **ufw only** | ✅ ⚠️ |
+| T41 | dmz-edge → homepage, fantasy, ops SSH, darrow Proxmox API, kali SSH | 3000, 22 / 22 / 8006 / 22 | ❌ | BLOCKED, all logged by rule 12 | ✅ |
+
+**T40 finding:** 8089 from the DMZ got through the gateway. ufw on `splunk` dropped it (8 drops in `ufw.log`), and no host anywhere has a gateway block on :8089 in 30 days. 5432 on the same host *is* blocked by rule 12, so the likeliest explanation is that `SIEM In` holds 8089 as well as 9997. That's not an exposure (ufw holds and splunkd's API isn't reachable), but it means the gateway doesn't match this page. Pending: the owner checks the group in the controller, and the table gets corrected (or 8089 removed from the group).
+
 **T36 in Splunk** (`index=netfw src_ip=10.12.30.30`, local time). The undocumented rule had logging off, so the connections it allowed left no events. That's why the evidence is the *absence* of blocks:
 - Before 12:01:25, no events from `fantasy` at all.
 - 12:01:27–12:01:39: the four targets the first run reported as BLOCKED (ops :22, Omada :443, both gateway UIs), 4 s apart, matching the test's timeout. The targets it reported as OPEN (darrow :22, sefi :8006, dns1 :5380) have **no blocks until the reruns** (12:02:34, 12:04:43, 12:03:43).
@@ -114,10 +125,10 @@ Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, whe
 ## Planned changes (Splunk, roadmap Phase 3)
 | Change | Reason |
 |---|---|
-| Rule 8 "Sec → SIEM": add **DMZ** to its source | `dmz-edge` forwarder → 10.12.30.20:9997. A single documented exception to DMZ isolation ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)) |
+| Rule 8 "Sec → SIEM": add **DMZ** to its source | ✅ Done 2026-10-01 (T39–T41). `dmz-edge` forwarder → 10.12.30.20:9997. A single documented exception to DMZ isolation ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)) |
 | Gateway → 10.12.30.20:514 (syslog) | ✅ Works with no ACL change. The ER605 sends from its Servers interface (10.12.30.1), so the traffic never crosses VLANs. The controller (10.12.5.2) and access point (10.12.5.200) are covered by rule 2 |
 | New test **T25**: Internal (non-admin) → Splunk :8000 must be blocked | Rule 3 permits Internal → Servers, so the host firewall (ufw) on `splunk` does the blocking |
 
 ## Open items
 - ✅ **Dashboard credentials** (resolved 2026-10-01): rule 9 makes homepage a pivot point, because it stores API credentials for Proxmox, Omada and Technitium and can reach all three. All of them are now read-only: Proxmox `PVEAuditor` tokens, the Omada `Viewer` role, and a Technitium `homepage` user with Dashboard view only. Before that, the Technitium keys were **admin** tokens on both servers.
-- **Log injection:** Security can send to Splunk :9997, so a compromised lab host could forge log events. Accepted for the lab. Future hardening: forwarder TLS with client certificates.
+- **Log injection:** Security and DMZ can send to Splunk :9997, so a compromised lab host could forge log events. Accepted for the lab. Future hardening: forwarder TLS with client certificates.

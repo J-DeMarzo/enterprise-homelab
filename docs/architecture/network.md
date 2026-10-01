@@ -52,7 +52,7 @@ Default deny between VLANs, with explicit allows (Omada evaluates the rules top-
 | **IoT** | DNS | ❌ | – | ❌ | ❌ | ❌ | ❌ |
 | **Servers** | DNS, NFS, Proxmox API and dashboard APIs (listed hosts only) | ❌ | ❌ | – | ❌ | ❌ | ❌ |
 | **Security** | DNS | ❌ | ❌ | SIEM :9997 only | – | ❌ | ❌ |
-| **DMZ** | DNS | ❌ | ❌ | ❌ | ❌ | – | ❌ |
+| **DMZ** | DNS | ❌ | ❌ | SIEM :9997 only | ❌ | – | ❌ |
 | **Guest** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | – |
 
 Admin terminals (an IP group) have full access, like Management. ❓ = optional rule 4 (Internal → IoT), see [firewall-rules.md](firewall-rules.md#rules-gateway-acl-lan--lan).

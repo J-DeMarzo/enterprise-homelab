@@ -41,7 +41,7 @@ flowchart LR
 | 20 | IoT | Firewall denies, DHCP, **full DNS** | None (can't install agents) |
 | 30 | Servers | Splunk `_internal`, homepage, bots, fantasy | UF on homepage, bots, fantasy |
 | 40 | Security | Kali, then AD DC + Windows 11 with Sysmon (Phase 4) | UF (+ Sysmon) |
-| 50 | DMZ | `dmz-edge` Caddy access logs, cloudflared, OS logs | UF on dmz-edge |
+| 50 | DMZ | `dmz-edge` Caddy access logs (`web`), cloudflared and OS logs (`linux`, journald) | UF on dmz-edge |
 | 99 | Guest | Firewall denies, DHCP | None |
 
 Internal, IoT, and Guest are deliberately covered **at network level only**: the enterprise pattern for unmanaged devices, and no software on household devices.
@@ -53,8 +53,8 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 |---|---|---|
 | `netfw` | Omada: ACL, DHCP, client events | 90 d |
 | `dns` | Technitium query logs | 30 d |
-| `linux` | auth, syslog, journald (Linux guests, Proxmox hosts) | 90 d |
-| `web` | dmz-edge Caddy access logs, cloudflared | 90 d |
+| `linux` | journald (Linux guests, Proxmox hosts, incl. cloudflared on dmz-edge), Proxmox API access log | 90 d |
+| `web` | dmz-edge Caddy access logs | 90 d |
 | `wineventlog`, `sysmon` | Phase 4 Windows targets | 90 d |
 | `soc_alerts` | Detection hits (summary index behind the Alert Queue) | 365 d |
 
@@ -66,12 +66,15 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 | Access point: Wi-Fi client flows | 10.12.5.200 | `omada:eap` | `netfw` | ✅ 2026-09-30. **Household flows dropped at index time** |
 | Unknown future senders | any | `syslog:unclassified` | `netfw` | Catch-all, so nothing is silently misparsed |
 | Technitium DNS query logs | dns1, dns2 (UF, `/var/log/technitium/dns/`) | `technitium:query` | `dns` | ✅ 2026-09-30. Fields: `src_ip`, `query`, `query_type`, `reply_code`, `answer`, `query_length`, `src_zone`. ~61k queries/day (~10–12 MB) |
-| System journal | ops, dns1, dns2 (UF); homepage, bots, fantasy, darrow, sevro, ragnar, sefi (UF) | `journald` | `linux` | ✅ 2026-09-30 / 2026-10-01 |
+| Caddy access logs (demarzo.dev) | dmz-edge (UF, `/var/log/caddy/`) | `caddy:access` | `web` | ✅ 2026-10-01. JSON. `src_ip` = the real visitor (`request.client_ip`, from `Cf-Connecting-Ip`), `http_method`, `uri`, `status`, `site`, `http_user_agent`. Verified with a request through Cloudflare from the home IP |
+| System journal | ops, dns1, dns2 (UF); dmz-edge, homepage, bots, fantasy, darrow, sevro, ragnar, sefi (UF) | `journald` | `linux` | ✅ 2026-09-30 / 2026-10-01 |
 | Proxmox API access log | darrow, sevro, ragnar, sefi (UF, `/var/log/pveproxy/access.log`) | `pve:access` | `linux` | ✅ 2026-10-01. Fields: `src_ip`, `user` (user or API token), `method`, `uri`, `status`, `src_zone`. Every call by each [ADR 0009](../adr/0009-least-privilege-proxmox-api-identities.md) identity is auditable |
 
 **Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset (fixed at the source on 2026-09-30 with NTP and a DST-aware time zone). rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
 
 **Proxmox access log quirks:** the date is day/month (`01/10/2026`), so the sourcetype needs an explicit `TIME_FORMAT`. darrow was onboarded before that existed, and its backfill was indexed as **January** 10. No cleanup was needed: on the next restart, retention froze that bucket because its newest event was past 90 days. Also, inside the cluster a node proxies API calls for guests on other nodes, so the target node logs the *proxying node's* IP (Management) as `src_ip`. The original client is in the first node's log.
+
+**dmz-edge specifics:** Caddy writes its log with mode 0600 by default. The Caddyfile (in the site's own repo) sets `mode 0640`, and the forwarder's user is in group `caddy`. cloudflared logs to journald, so it reaches `linux` with the rest of the host's journal. Copying it to `web` as well would only duplicate it. The forwarder needs about 90 MiB, and the 512 MiB container still has ~360 MiB free.
 
 **ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12), `1421851197` = DENY Gateway UI (rule 11). A lookup mapping IDs to names will be added as more IDs show up.
 
