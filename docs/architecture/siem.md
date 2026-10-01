@@ -89,6 +89,10 @@ In the **Homelab SOC** app (`homelab_base`), Dashboard Studio, defined in [`defa
 
 | **Alert queue** | Alert counts by severity · alerts over time by detection · counts per detection · the queue, newest first. Clicking a row opens its **pivot search** into the source data (for example, all of that IP's DNS queries) |
 
+![Zone overview: deny counts, deny matrix by zone, denies over time by rule](../images/zone-overview.png)
+
+*Zone overview, 2026-10-01, last 24 h. The spikes around noon and 4 PM are the firewall retests and the detection tests.*
+
 Data health uses each forwarder's `_internal` heartbeat rather than its last log line, so a quiet host isn't reported as down. The syslog-only senders (gateway, controller, AP) have no heartbeat and are flagged after an hour of silence.
 
 ## Alert queue (detections without alert actions)
