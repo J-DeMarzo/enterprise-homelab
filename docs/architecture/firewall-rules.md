@@ -43,7 +43,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | `Dashboard` | IP | 10.12.30.100 (`homepage`) | Rule 9 |
 | `Dashboard Targets` | IP-Port | 10.12.5.2 · 443 (Omada controller). 10.12.5.53, 10.12.5.54 · 5380 (Technitium API) | Rule 9 |
 | `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port 8006 | Rule 7 |
-| `SIEM In` | IP-Port | 10.12.30.20/32 · ports **9997, 8089**. 8089 (splunkd management, for a deployment server) isn't used. ufw blocks it, and removing it from the group is recommended (see T40) | Rule 8 |
+| `SIEM In` | IP-Port | 10.12.30.20/32 · port 9997. 8089 was also in the group until 2026-10-01 (T40). Add it back only if a Splunk deployment server is ever used | Rule 8 |
 | `All VLAN` | IP | 10.12.0.0/16 | Rule 12 |
 
 `ops` (10.12.5.10) needs no group entries because it's in Management ([ADR 0005](../adr/0005-admin-hosts-in-management-zone.md)).
@@ -106,10 +106,10 @@ Run from `dmz-edge` (10.12.50.10). Each blocked attempt was checked in Splunk (`
 | # | From → To | Port | Expected | Result | Pass |
 |---|---|---|---|---|---|
 | T39 | dmz-edge → Splunk forwarding | 9997 | ✅ | OPEN. The forwarder connects and Caddy logs are indexed | ✅ |
-| T40 | dmz-edge → Splunk web UI, SSH, PostgreSQL / mgmt API | 8000, 22, 5432 / 8089 | ❌ | BLOCKED by rule 12 (gateway logged it) / BLOCKED by **ufw only** | ✅ ⚠️ |
+| T40 | dmz-edge → Splunk web UI, SSH, PostgreSQL / mgmt API | 8000, 22, 5432 / 8089 | ❌ | BLOCKED by rule 12 (gateway logged it) / first run: BLOCKED by **ufw only**. Rerun after the fix: BLOCKED by rule 12 too | ✅ |
 | T41 | dmz-edge → homepage, fantasy, ops SSH, darrow Proxmox API, kali SSH | 3000, 22 / 22 / 8006 / 22 | ❌ | BLOCKED, all logged by rule 12 | ✅ |
 
-**T40 finding:** 8089 from the DMZ got through the gateway. ufw on `splunk` dropped it (8 drops in `ufw.log`), and no host anywhere has a gateway block on :8089 in 30 days. 5432 on the same host *is* blocked by rule 12, so the likeliest explanation is that `SIEM In` holds 8089 as well as 9997. That's not an exposure (ufw holds and splunkd's API isn't reachable), but it means the gateway doesn't match this page. **Confirmed by the owner (2026-10-01):** `SIEM In` is 10.12.30.20/32 with ports 8089 and 9997, so the group was broader than documented. No deployment server exists, so the gateway half of the defense in depth for 8089 is missing, and Security and DMZ rely on ufw alone. Recommended fix: remove 8089 from the group and rerun T40, which should then show a rule 12 block for 8089 too.
+**T40 finding:** 8089 from the DMZ got through the gateway. ufw on `splunk` dropped it (8 drops in `ufw.log`), and no host anywhere has a gateway block on :8089 in 30 days. 5432 on the same host *is* blocked by rule 12, so the likeliest explanation is that `SIEM In` holds 8089 as well as 9997. That's not an exposure (ufw holds and splunkd's API isn't reachable), but it means the gateway doesn't match this page. **Confirmed by the owner (2026-10-01):** `SIEM In` is 10.12.30.20/32 with ports 8089 and 9997, so the group was broader than documented. No deployment server exists, so the gateway half of the defense in depth for 8089 is missing, and Security and DMZ rely on ufw alone. **Fixed the same day:** the owner removed 8089 from the group. The T40 rerun was blocked at the gateway (4 rule 12 events in Splunk), and the attempt never reached ufw on `splunk`. Forwarding on 9997 was unaffected.
 
 **T36 in Splunk** (`index=netfw src_ip=10.12.30.30`, local time). The undocumented rule had logging off, so the connections it allowed left no events. That's why the evidence is the *absence* of blocks:
 - Before 12:01:25, no events from `fantasy` at all.
