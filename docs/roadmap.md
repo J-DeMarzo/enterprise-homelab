@@ -16,6 +16,10 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
 - [ ] Renumber `splunk` 210 → 151 to fit the [VMID scheme](architecture/compute.md#guest-standards) (node by hundreds, LXC `x00–49`, VM `x50–99`)
 - [ ] **Least-privilege API token** for `claude-mcp@pve`: it currently holds near-admin rights (can create users, allocate SDN, and so on). Replace it with a custom role scoped to VM, storage, and guest-agent operations. Record the change as an ADR
+  - [x] The Discord bot no longer shares it: its own user `discord-bot@pve` holds `PVEAuditor` plus a custom `DiscordBot` role (`VM.PowerMgmt`, `VM.Snapshot`, `Sys.Syslog`) on both targets. *Evidence:* a config write from the bot's token returns 403 `Permission check failed`
+  - [x] `claude-mcp@pve` token rotated (`!mcp` → `!ops`, 2026-10-01). It now exists only on `ops`, and the old token returns 401
+  - [ ] Scope `claude-mcp@pve`'s own role down from `PVEAdmin`
+- [ ] Restore SSH access to sefi: `sshd` accepts public keys only (since an old hardening playbook) and no admin key is authorized. Add the `ops` key from the web UI shell
 - [x] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB, both DNS servers) and build the golden template `ubuntu-2404-ci` (9001). *Evidence:* [runbook](runbooks/build-ubuntu-template.md), verified test clone, [INC-2026-001](incidents/2026-09-30-darrow-nfs-stale-handle.md)
 
 ## Phase 2: Safe to attack ✅
