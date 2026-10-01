@@ -12,8 +12,11 @@
 #                for migrations, the web UI shell, and replication)
 # 4. Proves `demarzo` still works and (standard) that root is refused.
 #
-# The first connection uses whatever ~/.ssh/config says for the alias (root
-# or demarzo). Break-glass if something goes wrong: the Proxmox web UI shell
+# The first connection uses whatever ~/.ssh/config says for the alias (root,
+# or a sudoer with passwordless sudo). If neither works yet, set ROOT_VIA to
+# reach root through the Proxmox node instead, e.g. for LXC 301 on ragnar:
+#   ROOT_VIA="ragnar pct exec 301 --" scripts/admin-access.sh bots
+# Break-glass if something goes wrong: the Proxmox web UI shell
 # (nodes), `pct enter <id>` (LXCs), or `qm guest exec <id>` (VMs).
 set -euo pipefail
 
@@ -33,7 +36,14 @@ Match Address $CLUSTER_NODES
 esac
 
 # Run a root script on the host, whether we log in as root or as a sudoer
-as_root() { "${SSH[@]}" "$HOST" 'if [ "$(id -u)" = 0 ]; then bash -s; else sudo -n bash -s; fi'; }
+as_root() {
+  if [ -n "${ROOT_VIA:-}" ]; then
+    read -r via_host via_cmd <<<"$ROOT_VIA"
+    "${SSH[@]}" "$via_host" "if [ \"\$(id -u)\" = 0 ]; then $via_cmd bash -s; else sudo -n $via_cmd bash -s; fi"
+  else
+    "${SSH[@]}" "$HOST" 'if [ "$(id -u)" = 0 ]; then bash -s; else sudo -n bash -s; fi'
+  fi
+}
 
 echo "==> [$HOST] 1/4 demarzo user, keys, sudo"
 as_root <<EOF
@@ -45,6 +55,7 @@ install -d -m 700 -o demarzo -g demarzo /home/demarzo/.ssh
 f=/home/demarzo/.ssh/authorized_keys; touch \$f
 grep -q 'demarzo@ops\$' \$f || echo '$OPS_KEY' >> \$f
 grep -q 'demarzo@demarzoDesk\$' \$f || echo '$DESK_KEY' >> \$f
+for k in \$f /root/.ssh/authorized_keys; do if [ -f \$k ]; then sed -i '/ claude@10[.]12[.]30[.]101\$/d' \$k; fi; done
 chown demarzo:demarzo \$f; chmod 600 \$f
 echo 'demarzo ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-demarzo
 chmod 440 /etc/sudoers.d/90-demarzo
@@ -65,9 +76,20 @@ KbdInteractiveAuthentication no
 PubkeyAuthentication yes
 $ROOT_POLICY
 CONF
+install -d -m 755 /run/sshd   # sshd -t/-T need it; absent while socket-activated sshd is idle
 sshd -t
-systemctl reload ssh 2>/dev/null || systemctl reload sshd
-sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication) ' | sed 's/^/   /'
+# Restart, don't reload: on OpenSSH 10 (Debian 13) the reload's HUP + re-exec
+# dies with "Cannot bind any address" and leaves sshd down. A restart keeps
+# open sessions (KillMode=process). Socket-activated hosts just get a fresh
+# listener on the next connection.
+u=ssh; systemctl cat ssh.service >/dev/null 2>&1 || u=sshd
+systemctl restart \$u.service || true
+sleep 1
+if ! systemctl is-active -q \$u.service && ! systemctl is-active -q ssh.socket; then
+  systemctl start \$u.service
+fi
+systemctl is-active -q \$u.service || systemctl is-active -q ssh.socket || { echo "   FAIL: sshd not running" >&2; exit 1; }
+install -d -m 755 /run/sshd; sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication) ' | sed 's/^/   /'
 EOF
 
 echo "==> [$HOST] 4/4 verify"
@@ -77,4 +99,11 @@ if [ "$MODE" = standard ]; then
   if "${SSH[@]}" "root@$IP" true 2>/dev/null; then echo "   FAIL: root login still accepted" >&2; exit 1
   else echo "   ok: root login refused"; fi
 fi
-echo "==> [$HOST] done. Point its ~/.ssh/config entry at User demarzo."
+# Point the alias at demarzo from now on (no-op if it already is)
+python3 - "$HOST" <<'PY'
+import re, sys, pathlib
+p = pathlib.Path.home() / ".ssh/config"; s = p.read_text()
+s2 = re.sub(r"(?m)^(Host %s\n(?:[ \t]+.*\n)*?[ \t]+User )root$" % re.escape(sys.argv[1]), r"\1demarzo", s)
+if s2 != s: p.write_text(s2); print("   ~/.ssh/config: %s now logs in as demarzo" % sys.argv[1])
+PY
+echo "==> [$HOST] done"
