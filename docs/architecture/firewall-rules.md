@@ -39,7 +39,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | `Admin Terminals` | IP | Admin desktop (reserved IP) | Rule 1 |
 | `DNS` | IP-Port | 10.12.5.53, 10.12.5.54 · port 53 | Rule 5 |
 | `NFS` | IP-Port | 10.12.5.14 · port 2049 (NFSv4) | Rule 6 |
-| `Proxmox Clients` | IP | 10.12.30.101 (`claude`), 10.12.30.100 (`homepage`). Both reserved | Rule 7 |
+| `Proxmox Clients` | IP | 10.12.30.101 (`bots`, formerly `claude`), 10.12.30.100 (`homepage`). Both reserved | Rule 7 |
 | `Dashboard` | IP | 10.12.30.100 (`homepage`) | Rule 9 |
 | `Dashboard Targets` | IP-Port | 10.12.5.2 · 443 (Omada controller). 10.12.5.53, 10.12.5.54 · 5380 (Technitium API) | Rule 9 |
 | `Proxmox Port` | IP-Port | 10.12.5.11, .12, .13, .14 · port 8006 | Rule 7 |

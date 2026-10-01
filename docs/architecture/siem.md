@@ -15,7 +15,7 @@ flowchart LR
         gw["Omada gateway + controller<br/>ACL denies · DHCP · clients<br/>(sees all 7 VLANs)"]
         dns["Technitium dns1 / dns2<br/>DNS queries"]
         mgmt["Mgmt: Proxmox hosts · ops"]
-        srv["Servers: homepage · claude"]
+        srv["Servers: homepage · bots · fantasy"]
         sec["Security: Kali · AD targets (Phase 4)"]
         dmz["DMZ: dmz-edge<br/>Caddy · cloudflared"]
     end
@@ -39,7 +39,7 @@ flowchart LR
 | 5 | Management | Proxmox journald, Technitium, ops, Omada controller | UF on PVE hosts, dns1/2, ops |
 | 10 | Internal | Firewall denies, DHCP, DNS **security signals only** | None (household devices) |
 | 20 | IoT | Firewall denies, DHCP, **full DNS** | None (can't install agents) |
-| 30 | Servers | Splunk `_internal`, homepage, claude | UF on homepage, claude |
+| 30 | Servers | Splunk `_internal`, homepage, bots, fantasy | UF on homepage, bots, fantasy |
 | 40 | Security | Kali, then AD DC + Windows 11 with Sysmon (Phase 4) | UF (+ Sysmon) |
 | 50 | DMZ | `dmz-edge` Caddy access logs, cloudflared, OS logs | UF on dmz-edge |
 | 99 | Guest | Firewall denies, DHCP | None |
@@ -86,7 +86,7 @@ Splunk Free has no authentication, so network controls are the only protection. 
 | 8000 (web UI) | Management, Admin Terminals | Host firewall (ufw) on `splunk`. The gateway ACL alone would allow all of Internal (rule 3) |
 | 9997 (forwarders) | Management, Servers, Security, DMZ | Gateway ACL rules 2 and 8, plus ufw |
 | 514 (syslog) | Gateway, Omada controller, Proxmox hosts | ufw |
-| 22 (SSH) | Servers (claude), Management | ufw |
+| 22 (SSH) | Management. A leftover rule still allows 10.12.30.101 (`bots`, formerly the `claude` workstation) and is due to be removed | ufw |
 
 ## License budget
 Splunk Free allows 500 MB/day. Estimates, to be replaced with measured values after a week of data:

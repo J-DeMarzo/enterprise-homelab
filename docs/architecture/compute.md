@@ -63,7 +63,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 |---|---|---|
 | dns1, dns2 | `infra` | `net-mgmt` |
 | ops | `admin` | `net-mgmt` |
-| claude | `admin` | `net-svc` |
+| bots | `admin` | `net-svc` |
 | homepage | `app` | `net-svc` |
 | fantasy | `app` | `net-svc` |
 | dmz-edge | `app` | `net-dmz` |
