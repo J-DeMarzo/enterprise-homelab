@@ -70,7 +70,7 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 
 **Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset (fixed at the source on 2026-09-30 with NTP and a DST-aware time zone). rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
 
-**ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12). A lookup mapping IDs to names will be added as more IDs show up.
+**ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12), `1421851197` = DENY Gateway UI (rule 11). A lookup mapping IDs to names will be added as more IDs show up.
 
 ## Privacy rules
 - **Household DNS:** queries from Internal (10.12.10.0/24) and Guest (10.12.99.0/24) are dropped at index time **unless** they failed or were blocked (NXDOMAIN, SERVFAIL, REFUSED, or a `0.0.0.0`/`::` answer). Failures that are only search-domain artifacts (`<site>.demarzo.lab` NXDOMAIN) are dropped too, because they'd reveal the site being browsed. Security signals stay, and browsing history is never stored ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)). Verified with a 7-case test file (all correct) and on live data (Internal shows only failures).

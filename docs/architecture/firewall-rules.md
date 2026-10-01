@@ -95,10 +95,15 @@ The admin work moved from `claude` (Servers) to `ops` (Management), 301 became `
 | T33 | ops → Omada controller, gateway UI on 10.12.5.1 and 10.12.30.1 (was T21/T23) | 443 | ✅ | OPEN | ✅ |
 | T34 | ops → Proxmox API on all four nodes | 8006 | ✅ | OPEN | ✅ |
 | T35 | ops → Splunk web UI, SSH / mgmt API (was T28/T30) | 8000, 22 / 8089 | ✅ / ❌ | OPEN (303 to login), OPEN / BLOCKED (ufw, by design) | ✅ |
-| T36 | fantasy (Servers, no groups) → Proxmox API, darrow SSH, dns1 admin UI | 8006, 22, 5380 | ❌ | 🔴 **OPEN on the first run.** An undocumented rule from 2026-09-30 ("claude → VLAN 5", with its own IP group) was still on the gateway. The owner deleted the rule and the group, and the rerun was BLOCKED (timeouts) | ✅ after fix |
+| T36 | fantasy (Servers, no groups) → Proxmox API, darrow SSH, dns1 admin UI | 8006, 22, 5380 | ❌ | 🔴 **OPEN on the first run.** An undocumented rule from 2026-09-30 ("claude → VLAN 5", with its own IP group) was still on the gateway. The owner deleted the rule and the group, and the rerun was BLOCKED (timeouts). Splunk confirms it: see below | ✅ after fix |
 | T36b | fantasy → ops SSH, Omada controller, gateway UI; → Splunk forwarding; → internet and DNS | 22, 443 / 9997 / 443, 53 | ❌ / ✅ / ✅ | BLOCKED / OPEN / OPEN | ✅ |
 | T37 | bots, fantasy → Splunk SSH (ufw no longer allows Servers) | 22 | ❌ | Pending: ufw change not applied yet | ⏳ |
 | T38 | bots after the rename: T13, T14, T16, T21, T23, T28, T30 re-run from 10.12.30.101 | various | as before | Proxmox API OPEN (rule 7), everything else into Management BLOCKED | ✅ |
+
+**T36 in Splunk** (`index=netfw src_ip=10.12.30.30`, local time). The undocumented rule had logging off, so the connections it allowed left no events. That's why the evidence is the *absence* of blocks:
+- Before 12:01:25, no events from `fantasy` at all.
+- 12:01:27–12:01:39: the four targets the first run reported as BLOCKED (ops :22, Omada :443, both gateway UIs), 4 s apart, matching the test's timeout. The targets it reported as OPEN (darrow :22, sefi :8006, dns1 :5380) have **no blocks until the reruns** (12:02:34, 12:04:43, 12:03:43).
+- The owner deleted the rule during that first run. At 12:01:25–12:01:31 the gateway also blocked the tail of a darrow :8006 connection and a reply inside an `ops` → `fantasy` SSH session (ops port 42396). A stateful firewall only does that when its connection table is reset. **Pushing an ACL change resets live inter-VLAN sessions**, so ACL changes belong in a quiet window.
 
 **Lesson from T36:** the rules table above must match the gateway. Any gateway change gets recorded the same day, and every new guest gets a reachability check from its own address before it's considered done.
 
