@@ -8,8 +8,10 @@
 # 2. Proves from ops that `demarzo` can log in and sudo. Stops here if not.
 # 3. Only then hardens sshd with a drop-in: key-only logins, and
 #      standard: no root login at all
-#      node:     root only from the other cluster nodes (Proxmox needs it
-#                for migrations, the web UI shell, and replication)
+#      node:     root keys only, and only from the cluster nodes (Proxmox
+#                needs root SSH between nodes for migrations, the web UI
+#                shell, and replication). Done with AllowUsers, not Match.
+#                Everyone else must be demarzo.
 # 4. Proves `demarzo` still works and (standard) that root is refused.
 #
 # The first connection uses whatever ~/.ssh/config says for the alias (root,
@@ -29,9 +31,8 @@ SSH=(ssh -T -o BatchMode=yes -o ConnectTimeout=5)
 
 case "$MODE" in
   standard) ROOT_POLICY='PermitRootLogin no' ;;
-  node)     ROOT_POLICY="PermitRootLogin no
-Match Address $CLUSTER_NODES
-    PermitRootLogin prohibit-password" ;;
+  node)     ROOT_POLICY="PermitRootLogin prohibit-password
+AllowUsers demarzo $(printf 'root@%s ' ${CLUSTER_NODES//,/ })" ;;
   *) echo "mode must be standard or node" >&2; exit 2 ;;
 esac
 
@@ -89,16 +90,15 @@ if ! systemctl is-active -q \$u.service && ! systemctl is-active -q ssh.socket; 
   systemctl start \$u.service
 fi
 systemctl is-active -q \$u.service || systemctl is-active -q ssh.socket || { echo "   FAIL: sshd not running" >&2; exit 1; }
-install -d -m 755 /run/sshd; sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication) ' | sed 's/^/   /'
+install -d -m 755 /run/sshd; sshd -T | grep -Ei '^(permitrootlogin|passwordauthentication|kbdinteractiveauthentication|allowusers) ' | sed 's/^/   /'
 EOF
 
 echo "==> [$HOST] 4/4 verify"
 IP=$("${SSH[@]}" -G "$HOST" | awk '/^hostname /{print $2}')
 "${SSH[@]}" "demarzo@$IP" 'sudo -n true && echo "   ok: demarzo + sudo still work"'
-if [ "$MODE" = standard ]; then
-  if "${SSH[@]}" "root@$IP" true 2>/dev/null; then echo "   FAIL: root login still accepted" >&2; exit 1
-  else echo "   ok: root login refused"; fi
-fi
+# ops (10.12.5.10) isn't a cluster node, so root must be refused in both modes
+if "${SSH[@]}" "root@$IP" true 2>/dev/null; then echo "   FAIL: root login from ops still accepted" >&2; exit 1
+else echo "   ok: root login from ops refused"; fi
 # Point the alias at demarzo from now on (no-op if it already is)
 python3 - "$HOST" <<'PY'
 import re, sys, pathlib
