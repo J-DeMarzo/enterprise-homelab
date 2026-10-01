@@ -36,5 +36,5 @@ That caused three problems:
 | `claude-mcp@pve!mcp` → `!ops` | Old token deleted on both environments, returns 401 |
 | 301 renamed `bots`, restarted | Same IP, both services back, bot answers in Discord |
 | `ops` key authorized on `dmz-edge` (from 10.12.5.10 only); 301's key and GitHub login removed | demarzo.dev deploys from `ops` |
-| Undocumented gateway rule "claude → VLAN 5" and its IP group deleted (owner) | `fantasy` → Management blocked (T36) |
+| Undocumented gateway rules "claude → VLAN 5" (with its IP group) and "claude → dmz-edge:22" deleted (owner) | `fantasy` → Management blocked (T36). Servers → dmz-edge:22 blocked |
 | Splunk ufw: SSH from Servers (10.12.30.0/24) removed (owner, `qm guest exec` from darrow); 301's stale key removed from splunk, `ops` key added | T37 |

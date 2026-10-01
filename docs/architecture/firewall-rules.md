@@ -105,6 +105,8 @@ The admin work moved from `claude` (Servers) to `ops` (Management), 301 became `
 - 12:01:27–12:01:39: the four targets the first run reported as BLOCKED (ops :22, Omada :443, both gateway UIs), 4 s apart, matching the test's timeout. The targets it reported as OPEN (darrow :22, sefi :8006, dns1 :5380) have **no blocks until the reruns** (12:02:34, 12:04:43, 12:03:43).
 - The owner deleted the rule during that first run. At 12:01:25–12:01:31 the gateway also blocked the tail of a darrow :8006 connection and a reply inside an `ops` → `fantasy` SSH session (ops port 42396). A stateful firewall only does that when its connection table is reset. **Pushing an ACL change resets live inter-VLAN sessions**, so ACL changes belong in a quiet window.
 
+**A second undocumented rule** turned up in the old demarzo.dev notes: `claude` (301) → `dmz-edge` tcp/22, for site deploys. Deploys now run from `ops` (Management → DMZ, rule 2), so the owner removed it on 2026-10-01. Check: `bots` and `fantasy` → 10.12.50.10:22 time out.
+
 **Lesson from T36:** the rules table above must match the gateway. Any gateway change gets recorded the same day, and every new guest gets a reachability check from its own address before it's considered done.
 
 Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, where I can't run tests.
