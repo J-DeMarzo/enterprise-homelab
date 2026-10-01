@@ -16,7 +16,7 @@ Hosts the lab is managed *from* (`admin` role) live on the Management VLAN (5), 
 - ✅ Automation traffic (Ansible → hypervisors, DNS, guests) no longer crosses a zone boundary to reach the hypervisors.
 - ❌ An admin host that gets compromised is already inside the management zone. Mitigations: key-only SSH (already the case), and later, Wazuh monitoring (roadmap Phase 2).
 - ❌ Changing the cloud-init network config made cloud-init treat ops as a new instance and regenerate its SSH host keys. Clients see it as a new host.
-- ⚠️ `claude` is also an `admin` host but stays on VLAN 30 for now. Until it moves, the ACLs need one documented exception: `claude` → Proxmox API (TCP 8006).
+- ✅ ~~`claude` is also an `admin` host but stays on VLAN 30 for now.~~ Resolved 2026-10-01 by [ADR 0008](0008-agent-workstation-in-management-bots-scoped.md): the workstation role moved to `ops`. 301 is now `bots`, which keeps the rule 7 exception (Proxmox API only) with a scoped token.
 
 ## Change record
 | Step | Result |

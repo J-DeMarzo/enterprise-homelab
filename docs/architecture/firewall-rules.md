@@ -1,6 +1,6 @@
 # Firewall rules (Omada gateway ACLs)
 
-**Status:** default-deny between VLANs is **enforced** as of 2026-09-30. **All 29 tests pass.**
+**Status:** default-deny between VLANs is **enforced** as of 2026-09-30. All 29 original tests pass. The 2026-10-01 retests after the [agent-workstation move](../adr/0008-agent-workstation-in-management-bots-scoped.md) found and removed one undocumented rule (T36).
 
 ## Design
 An allow-list with a default-deny at the bottom. Omada evaluates gateway ACLs top-down and the first match wins. Rules 1–9 permit specific flows, rule 10 isolates Guest, rule 11 blocks the gateway's own admin UI, and rule 12 denies everything else between VLANs. Management isn't in the deny rules' source lists, so it keeps full reach. The policy matrix is in [network.md](network.md#segmentation-policy).
@@ -50,7 +50,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 
 ## Test results
 
-"Before" was measured on 2026-09-29 with the default-deny rule disabled. "After" was measured on 2026-09-30 with default-deny enabled. Tests ran as TCP connects from the named host: `kali` (10.12.40.101, Security), `ops` (10.12.5.10, Management), `claude` (10.12.30.101, Servers).
+"Before" was measured on 2026-09-29 with the default-deny rule disabled. "After" was measured on 2026-09-30 with default-deny enabled. Tests ran as TCP connects from the named host: `kali` (10.12.40.101, Security), `ops` (10.12.5.10, Management), `claude` (10.12.30.101, Servers; renamed `bots` on 2026-10-01, same IP and groups).
 
 | # | From → To | Port | Expected | Before | After | Pass |
 |---|---|---|---|---|---|---|
@@ -84,6 +84,23 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | T28 | claude (Servers) → Splunk web UI | 8000 | ❌ | n/a | BLOCKED (ufw: Servers isn't an admin zone) | ✅ |
 | T29 | claude (Servers) → Splunk forwarding | 9997 | ✅ | n/a | OPEN | ✅ |
 | T30 | claude (Servers) → Splunk mgmt API | 8089 | ❌ | n/a | BLOCKED (ufw) | ✅ |
+
+### Retests after the agent-workstation move (2026-10-01)
+The admin work moved from `claude` (Servers) to `ops` (Management), 301 became `bots`, and `fantasy` (10.12.30.30) joined Servers with no IP group memberships ([ADR 0008](../adr/0008-agent-workstation-in-management-bots-scoped.md)). Same method: TCP connects, with timeouts telling gateway drops apart from host refusals.
+
+| # | From → To | Port | Expected | Result | Pass |
+|---|---|---|---|---|---|
+| T31 | ops → darrow, sefi SSH (was T14 from claude) | 22 | ✅ | OPEN | ✅ |
+| T32 | ops → dns1, dns2 admin UI (was T15/T21) | 5380 | ✅ | OPEN, HTTP 200 | ✅ |
+| T33 | ops → Omada controller, gateway UI on 10.12.5.1 and 10.12.30.1 (was T21/T23) | 443 | ✅ | OPEN | ✅ |
+| T34 | ops → Proxmox API on all four nodes | 8006 | ✅ | OPEN | ✅ |
+| T35 | ops → Splunk web UI, SSH / mgmt API (was T28/T30) | 8000, 22 / 8089 | ✅ / ❌ | OPEN (303 to login), OPEN / BLOCKED (ufw, by design) | ✅ |
+| T36 | fantasy (Servers, no groups) → Proxmox API, darrow SSH, dns1 admin UI | 8006, 22, 5380 | ❌ | 🔴 **OPEN on the first run.** An undocumented rule from 2026-09-30 ("claude → VLAN 5", with its own IP group) was still on the gateway. The owner deleted the rule and the group, and the rerun was BLOCKED (timeouts) | ✅ after fix |
+| T36b | fantasy → ops SSH, Omada controller, gateway UI; → Splunk forwarding; → internet and DNS | 22, 443 / 9997 / 443, 53 | ❌ / ✅ / ✅ | BLOCKED / OPEN / OPEN | ✅ |
+| T37 | bots, fantasy → Splunk SSH (ufw no longer allows Servers) | 22 | ❌ | Pending: ufw change not applied yet | ⏳ |
+| T38 | bots after the rename: T13, T14, T16, T21, T23, T28, T30 re-run from 10.12.30.101 | various | as before | Proxmox API OPEN (rule 7), everything else into Management BLOCKED | ✅ |
+
+**Lesson from T36:** the rules table above must match the gateway. Any gateway change gets recorded the same day, and every new guest gets a reachability check from its own address before it's considered done.
 
 Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, where I can't run tests.
 

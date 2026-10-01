@@ -12,6 +12,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 ## Phase 1: Hygiene ✅ (mostly)
 - [x] Guest metadata: Notes cards and [role/zone tags](architecture/compute.md#tag-scheme) on all guests, following the [guest notes standard](architecture/compute.md#guest-notes-standard)
 - [x] Move `ops` to the management VLAN ([ADR 0005](adr/0005-admin-hosts-in-management-zone.md)). *Evidence:* change record and connectivity checks in the ADR
+- [x] Make `ops` the agent workstation; 301 becomes `bots` with a scoped token; fantasy-app gets its own LXC ([ADR 0008](adr/0008-agent-workstation-in-management-bots-scoped.md)). *Evidence:* [retests T31–T38](architecture/firewall-rules.md#retests-after-the-agent-workstation-move-2026-10-01), bot token 403 on config writes
 - [ ] DNS: records for `ops`, `homepage`, `gw`, `splunk`. Fix the NS records. Document how dns2 syncs
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
 - [ ] Renumber `splunk` 210 → 151 to fit the [VMID scheme](architecture/compute.md#guest-standards) (node by hundreds, LXC `x00–49`, VM `x50–99`)
