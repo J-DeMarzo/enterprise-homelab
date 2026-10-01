@@ -119,5 +119,5 @@ Not tested by me: rules 1, 3, and 4 start from the owner's personal devices, whe
 | New test **T25**: Internal (non-admin) → Splunk :8000 must be blocked | Rule 3 permits Internal → Servers, so the host firewall (ufw) on `splunk` does the blocking |
 
 ## Open items
-- **Dashboard credentials:** rule 9 makes homepage a pivot point. It stores API credentials for Proxmox, Omada, and Technitium and can reach all three. Move it to read-only credentials (Proxmox `PVEAuditor` token, Omada viewer, read-only Technitium user).
+- ✅ **Dashboard credentials** (resolved 2026-10-01): rule 9 makes homepage a pivot point, because it stores API credentials for Proxmox, Omada and Technitium and can reach all three. All of them are now read-only: Proxmox `PVEAuditor` tokens, the Omada `Viewer` role, and a Technitium `homepage` user with Dashboard view only. Before that, the Technitium keys were **admin** tokens on both servers.
 - **Log injection:** Security can send to Splunk :9997, so a compromised lab host could forge log events. Accepted for the lab. Future hardening: forwarder TLS with client certificates.

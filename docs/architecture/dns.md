@@ -48,6 +48,15 @@ Found and fixed on 2026-10-01: `30.12.10.in-addr.arpa` (VLAN 30 reverse lookups)
 
 ## API access
 
+**Technitium's built-in "Everyone" group** includes every user implicitly and, by default, can *view* Logs, Cache, DNS Client, Allowed, Blocked and Apps. A brand-new "read-only" user can therefore download the raw query logs: every client's lookups, before the household privacy filter in Splunk. On both servers, "Everyone" has been removed from those sections (2026-10-01). Non-admin users get only what's granted to them by name.
+
+| User | Server | Can | Used by |
+|---|---|---|---|
+| `admin` | both | everything | owner, console only |
+| `ops` | dns1 | View + Modify on the four zones | `ops` (API) |
+| `homepage` | both | Dashboard: View | homepage's DNS widgets |
+
+
 Changes can be made through the Technitium API from `ops` with a dedicated user, **`ops`**. It isn't an administrator: it has the Zones section plus View + Modify on the four zones above. It can add and update records, but **can't delete them**, because Technitium requires the zone's Delete permission even for single records. Its token lives on `ops` at `~/.config/technitium/dns1.token` (mode 600) and is never committed. Zone *options* (catalog membership, notify, transfer ACLs) need an administrator in the console.
 
 Procedure: [runbooks/add-dns-record.md](../runbooks/add-dns-record.md)

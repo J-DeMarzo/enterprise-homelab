@@ -26,7 +26,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 ## Phase 2: Safe to attack ✅
 - [x] **Enforce default-deny between VLANs**: IP groups corrected, DNS rule limited to port 53, default-deny enabled. *Evidence:* [before/after test table](architecture/firewall-rules.md#test-results). all 21 executed tests pass, and the ACLs are verified stateful
 - [x] Block the gateway's admin UI from every non-management VLAN (rule 11). *Evidence:* T6/T7/T23 blocked, internet and DNS unaffected (T24)
-- [ ] Read-only credentials for homepage's widgets (Proxmox `PVEAuditor`, Omada viewer, Technitium read-only). Homepage can reach management APIs through rule 9
+- [x] Read-only credentials for homepage's widgets. Homepage can reach management APIs through rule 9. *Evidence:* Proxmox tokens are PVEAuditor and the Omada account is Viewer (both already were). The Technitium keys **were admin tokens** on both servers; they were replaced by a `homepage` user that can read only dashboard stats, and logs, cache, settings and zones all return "Access was denied". All widgets still load
 
 ## Phase 3: Visibility (SIEM)
 Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-and-household-data.md) · config in [`splunk/`](../splunk/)
