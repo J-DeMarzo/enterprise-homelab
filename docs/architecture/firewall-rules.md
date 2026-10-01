@@ -97,7 +97,7 @@ The admin work moved from `claude` (Servers) to `ops` (Management), 301 became `
 | T35 | ops → Splunk web UI, SSH / mgmt API (was T28/T30) | 8000, 22 / 8089 | ✅ / ❌ | OPEN (303 to login), OPEN / BLOCKED (ufw, by design) | ✅ |
 | T36 | fantasy (Servers, no groups) → Proxmox API, darrow SSH, dns1 admin UI | 8006, 22, 5380 | ❌ | 🔴 **OPEN on the first run.** An undocumented rule from 2026-09-30 ("claude → VLAN 5", with its own IP group) was still on the gateway. The owner deleted the rule and the group, and the rerun was BLOCKED (timeouts). Splunk confirms it: see below | ✅ after fix |
 | T36b | fantasy → ops SSH, Omada controller, gateway UI; → Splunk forwarding; → internet and DNS | 22, 443 / 9997 / 443, 53 | ❌ / ✅ / ✅ | BLOCKED / OPEN / OPEN | ✅ |
-| T37 | bots, fantasy → Splunk SSH (ufw no longer allows Servers) | 22 | ❌ | Pending: ufw change not applied yet | ⏳ |
+| T37 | bots, fantasy → Splunk SSH (ufw no longer allows Servers); ops → Splunk SSH | 22 | ❌ / ✅ | BLOCKED (timeouts, ufw drop) / OPEN | ✅ |
 | T38 | bots after the rename: T13, T14, T16, T21, T23, T28, T30 re-run from 10.12.30.101 | various | as before | Proxmox API OPEN (rule 7), everything else into Management BLOCKED | ✅ |
 
 **T36 in Splunk** (`index=netfw src_ip=10.12.30.30`, local time). The undocumented rule had logging off, so the connections it allowed left no events. That's why the evidence is the *absence* of blocks:

@@ -14,8 +14,8 @@ ufw --force reset >/dev/null
 ufw default deny incoming
 ufw default allow outgoing
 
-# SSH: claude (Servers), Management, admin desktop
-ufw allow from "$SERVERS"       to any port 22 proto tcp comment 'ssh servers'
+# SSH: Management (ops) and the admin desktop. Servers lost SSH on 2026-10-01
+# when the agent workstation moved from claude (Servers) to ops (ADR 0008)
 ufw allow from "$MGMT"          to any port 22 proto tcp comment 'ssh mgmt'
 ufw allow from "$ADMIN_DESKTOP" to any port 22 proto tcp comment 'ssh admin desktop'
 

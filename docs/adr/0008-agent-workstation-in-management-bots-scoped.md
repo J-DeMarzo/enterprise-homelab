@@ -21,7 +21,7 @@ That caused three problems:
 ## Consequences
 - ✅ No host outside Management holds a credential that can change Proxmox configuration. A compromised or prompt-injected bot can at worst power-cycle or snapshot guests. *Evidence:* a config write with the bot's token returns `403 Permission check failed`, even after the request is approved in Discord.
 - ✅ Admin tasks that were blocked from Servers now work from `ops` without exceptions (T31–T35).
-- ✅ The Servers → Management exceptions shrink to rule 7 for `bots` and `homepage`, port 8006 only. Splunk's host firewall is being narrowed to stop accepting SSH from Servers (T37).
+- ✅ The Servers → Management exceptions shrink to rule 7 for `bots` and `homepage`, port 8006 only. Splunk's host firewall no longer accepts SSH from Servers (T37).
 - ❌ `ops` is now the highest-value host in the lab: a `PVEAdmin` token, a GitHub token, and SSH keys for `fantasy` and `dmz-edge`. Mitigations: key-only SSH, Management is reachable only from Management and the admin desktop, and the roadmap item to scope `claude-mcp@pve` down from `PVEAdmin`.
 - ❌ `VM.PowerMgmt` still lets the bot stop any guest, including `dns1`. Accepted: the bot's rules require an explicit "yes" in Discord before any disruptive action, and the power is needed for its main job.
 - ⚠️ The retests exposed **configuration drift**: a gateway rule added on 2026-09-30 for `claude` → Management was never recorded in [firewall-rules.md](../architecture/firewall-rules.md), and it let a brand-new Servers host (`fantasy`) reach Management. The rule and its IP group were deleted during this change. Lesson: every gateway change gets recorded in the rules table the same day, and every new guest gets a reachability check (T36).
@@ -37,4 +37,4 @@ That caused three problems:
 | 301 renamed `bots`, restarted | Same IP, both services back, bot answers in Discord |
 | `ops` key authorized on `dmz-edge` (from 10.12.5.10 only); 301's key and GitHub login removed | demarzo.dev deploys from `ops` |
 | Undocumented gateway rule "claude → VLAN 5" and its IP group deleted (owner) | `fantasy` → Management blocked (T36) |
-| Splunk ufw: remove SSH from Servers (10.12.30.0/24) | Pending (owner, from the VM console) · T37 |
+| Splunk ufw: SSH from Servers (10.12.30.0/24) removed (owner, `qm guest exec` from darrow); 301's stale key removed from splunk, `ops` key added | T37 |
