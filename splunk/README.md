@@ -10,8 +10,10 @@ apps/homelab_base/        installed on the indexer (splunk, 10.12.30.20)
   default/props.conf      sourcetypes + automatic lookups (added per source as onboarded)
   lookups/vlan_zones.csv  10.12.<vlan>.0/24 → zone, trust
 forwarder/install-uf.sh   Universal Forwarder installer: checksum-verified package, localhost-only mgmt port,
-                          roles `linux` (journald → linux) and `technitium` (query logs → dns)
-server/                   rsyslog intake, ufw host firewall, raw-buffer cleanup cron for the Splunk VM
+                          roles `linux` (journald → linux), `technitium` (query logs → dns),
+                          `pve` (Proxmox API access log → linux) and `caddy` (Caddy JSON → web)
+server/                   rsyslog intake, ufw host firewall, raw-buffer cleanup cron for the Splunk VM,
+                          deploy-app.sh (push homelab_base to the indexer from ops)
 ```
 
 Deploy: copy `apps/homelab_base` to `$SPLUNK_HOME/etc/apps/` on the indexer and restart Splunk. Sourcetypes and filters are written against **real sample events** from each source, not guessed formats, so they're added as each source is onboarded.

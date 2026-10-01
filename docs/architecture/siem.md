@@ -66,9 +66,12 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 | Access point: Wi-Fi client flows | 10.12.5.200 | `omada:eap` | `netfw` | ✅ 2026-09-30. **Household flows dropped at index time** |
 | Unknown future senders | any | `syslog:unclassified` | `netfw` | Catch-all, so nothing is silently misparsed |
 | Technitium DNS query logs | dns1, dns2 (UF, `/var/log/technitium/dns/`) | `technitium:query` | `dns` | ✅ 2026-09-30. Fields: `src_ip`, `query`, `query_type`, `reply_code`, `answer`, `query_length`, `src_zone`. ~61k queries/day (~10–12 MB) |
-| System journal | ops, dns1, dns2 (UF) | `journald` | `linux` | ✅ 2026-09-30 |
+| System journal | ops, dns1, dns2 (UF); homepage, bots, fantasy, darrow, sevro, ragnar, sefi (UF) | `journald` | `linux` | ✅ 2026-09-30 / 2026-10-01 |
+| Proxmox API access log | darrow, sevro, ragnar, sefi (UF, `/var/log/pveproxy/access.log`) | `pve:access` | `linux` | ✅ 2026-10-01. Fields: `src_ip`, `user` (user or API token), `method`, `uri`, `status`, `src_zone`. Every call by each [ADR 0009](../adr/0009-least-privilege-proxmox-api-identities.md) identity is auditable |
 
 **Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset (fixed at the source on 2026-09-30 with NTP and a DST-aware time zone). rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
+
+**Proxmox access log quirks:** the date is day/month (`01/10/2026`), so the sourcetype needs an explicit `TIME_FORMAT`. darrow was onboarded before that existed, and its backfill was indexed as **January** 10. No cleanup was needed: on the next restart, retention froze that bucket because its newest event was past 90 days. Also, inside the cluster a node proxies API calls for guests on other nodes, so the target node logs the *proxying node's* IP (Management) as `src_ip`. The original client is in the first node's log.
 
 **ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12), `1421851197` = DENY Gateway UI (rule 11). A lookup mapping IDs to names will be added as more IDs show up.
 

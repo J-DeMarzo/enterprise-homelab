@@ -67,7 +67,13 @@ Run [`splunk/server/ufw-rules.sh`](../../splunk/server/ufw-rules.sh) as root. De
 Splunk 10 also listens on **0.0.0.0:5432** (bundled PostgreSQL) and 8089. Both stay closed to the network.
 
 ## 6b. Universal Forwarders
-Installer: [`splunk/forwarder/install-uf.sh`](../../splunk/forwarder/install-uf.sh). It downloads UF 10.4.4, verifies the SHA-512, and installs it with a random root-only admin credential. Roles: `linux` (journald → `linux`), `technitium` (query logs → `dns`). Run it from a URL **pinned to a commit** so the script can't change under you:
+Installer: [`splunk/forwarder/install-uf.sh`](../../splunk/forwarder/install-uf.sh). It downloads UF 10.4.4, verifies the SHA-512, and installs it with a random root-only admin credential. Roles: `linux` (journald → `linux`), `technitium` (query logs → `dns`), `pve` (Proxmox API access log → `linux`, read access by ACL), `caddy` (Caddy JSON access logs → `web`).
+
+From `ops`, for any host it can SSH to (all of them), copy the repo's script over. It's staged to a file first, because dpkg/apt would read the rest of a script piped into `bash -s`:
+```bash
+ssh <host> 'f=$(mktemp); cat >"$f"; sudo bash "$f" linux pve; rm -f "$f"' < splunk/forwarder/install-uf.sh
+```
+Without `ops`, run it from a URL **pinned to a commit** so the script can't change under you:
 ```bash
 # VM (e.g. ops), as root:
 curl -fsSL https://raw.githubusercontent.com/J-DeMarzo/enterprise-homelab/<commit>/splunk/forwarder/install-uf.sh | bash -s -- linux
@@ -76,7 +82,9 @@ pct exec <vmid> -- bash -c "curl -fsSL <same URL> | bash -s -- linux technitium"
 ```
 > ⚠️ **Lessons from the first install (ops):** (1) never run the `splunk` binary as root before `enable boot-start`, because it drops to `splunkfwd` and trips over root-owned dirs; (2) a manual `splunk start` + `splunk stop` hung with the journald input active, so let `enable boot-start` and systemd handle it; (3) the QEMU guest agent kills commands after 60 s, so run long installs over SSH or `pct exec`, not the guest agent.
 
-Verify: `| tstats count where index=linux by host`, plus a `logger` test message showing up within seconds.
+Verify: `| tstats count where index=linux by host`, plus a `logger` test message showing up within seconds. From `ops`: `scripts/splunk-search.sh '<spl>' [earliest]` runs a search over SSH and prints CSV (8089 stays closed to the network).
+
+**Indexer app changes:** `splunk/server/deploy-app.sh` copies `apps/homelab_base` to the indexer and restarts Splunk (~30 s). Add a new sourcetype's props **before** the first forwarder sends it: index-time settings like `TIME_FORMAT` don't apply to data that's already indexed.
 
 **Technitium:** enable Settings → Logging → *Log All Queries* (UTC) first. On v15+ the logs are in `/var/log/technitium/dns/` (older: `/etc/dns/logs`, `/etc/dns/config/logs`). The installer searches all of them. The first run backfills today's whole log file, so expect a one-time spike in license usage.
 

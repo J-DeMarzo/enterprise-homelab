@@ -3,6 +3,10 @@
 #   Usage (as root):  install-uf.sh <role> [<role> ...]
 #   Roles:  linux       systemd journal -> index linux (every host)
 #           technitium  Technitium DNS query logs -> index dns
+#           pve         Proxmox API access log (pveproxy) -> index linux
+#           caddy       Caddy JSON access logs (dmz-edge) -> index web
+# From ops, without a URL (staged to a file: dpkg/apt would eat a script piped to bash -s):
+#   ssh <host> 'f=$(mktemp); cat >"$f"; sudo bash "$f" linux pve; rm -f "$f"' < install-uf.sh
 # On a Proxmox host, for an LXC:
 #   pct exec <vmid> -- bash -c "curl -fsSL <raw URL of this file> | bash -s -- linux technitium"
 # Design and data policy: docs/architecture/siem.md, ADR 0007.
@@ -80,6 +84,32 @@ EOF
       chgrp -R "$USER_UF" "$DIR" 2>/dev/null || true
       chmod -R g+rX "$DIR"
       log "technitium logs: $DIR"
+      ;;
+    pve)
+      # Every API call with the user/token that made it (ADR 0009 identities).
+      # /var/log/pveproxy is 0700 www-data and logrotate recreates access.log as
+      # 640 www-data, so read access is an ACL: on the dir, the current files, and
+      # a default ACL so each day's new file inherits it.
+      command -v setfacl >/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq acl >/dev/null
+      setfacl -m "u:$USER_UF:rx" -m "d:u:$USER_UF:r" /var/log/pveproxy
+      setfacl -m "u:$USER_UF:r" /var/log/pveproxy/access.log*
+      cat >> "$APP/inputs.conf" <<'EOF'
+[monitor:///var/log/pveproxy/access.log]
+index = linux
+sourcetype = pve:access
+EOF
+      ;;
+    caddy)
+      # Needs the Caddyfile's log output to use "mode 0640" (Caddy's default is 0600),
+      # see docs/runbooks/deploy-splunk.md. Visitor IPs: never publish raw events.
+      [[ -d /var/log/caddy ]] || { echo "/var/log/caddy not found" >&2; exit 1; }
+      usermod -aG "$(stat -c %G /var/log/caddy)" "$USER_UF"
+      cat >> "$APP/inputs.conf" <<'EOF'
+[monitor:///var/log/caddy]
+index = web
+sourcetype = caddy:access
+whitelist = \.log$
+EOF
       ;;
     *) echo "unknown role: $role" >&2; exit 2 ;;
   esac
