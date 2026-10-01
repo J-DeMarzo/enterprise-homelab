@@ -1,0 +1,11 @@
+[Unit]
+Description=Serve Claude usage JSON (pushed from ops) to Homepage on localhost
+After=network.target
+
+[Service]
+User=demarzo
+ExecStart=/usr/bin/python3 -m http.server 8787 --bind 127.0.0.1 --directory /var/lib/claude-usage
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

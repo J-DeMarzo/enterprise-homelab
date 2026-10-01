@@ -27,12 +27,12 @@ See the generated [inventory](../inventory.md). In short:
 | Guest | Role | Where |
 |---|---|---|
 | dns1 / dns2 | Internal DNS (Technitium) | sevro / sefi |
-| ops | Headless admin jump box and agent workstation: Claude Code, herdr, the Proxmox MCP (Ubuntu 24.04, rebuilt 2026-09-30). Ansible/Terraform control node when that resumes ([ADR 0006](../adr/0006-soc-focus-with-splunk.md)) | sefi |
+| ops | Headless admin jump box and agent workstation: Claude Code, herdr, the Proxmox MCP (Ubuntu 24.04, rebuilt 2026-09-30). Ansible/Terraform control node when that resumes ([ADR 0006](../adr/0006-soc-focus-with-splunk.md)). Pushes the Claude plan-usage feed to homepage ([runbook](../runbooks/claude-usage-feed.md)) | sefi |
 | ubuntu-2404-ci | Golden Ubuntu template (9001) for Splunk and future VMs | sevro (disk on pax) |
 | dmz-edge | Internet-facing edge in the DMZ: Caddy + cloudflared (Cloudflare Tunnel) for demarzo.dev | sefi |
 | splunk | SIEM: Splunk Enterprise (VMID 151, built from template 9001) | darrow |
 | homepage | Lab dashboard | ragnar |
-| bots | Discord Proxmox bot (scoped `discord-bot@pve` token) and the plan-usage feed for homepage. Formerly `claude`, the agent workstation | ragnar |
+| bots | Discord Proxmox bot (scoped `discord-bot@pve` token). Formerly `claude`, the agent workstation | ragnar |
 | fantasy | Dev/runtime host for the fantasy-app project (LXC 201) | sevro |
 | kali / Kali-Master | Offensive-security VM and its golden template | sevro / darrow |
 | Omarchy | Linux desktop VM (stopped) | darrow |

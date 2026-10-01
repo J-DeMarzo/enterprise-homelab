@@ -1,0 +1,8 @@
+[Unit]
+Description=Push Claude plan usage JSON to Homepage CT
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/claude-usage
+ExecStart=/usr/bin/python3 %h/claude-usage/push.py
