@@ -14,21 +14,40 @@
 - **Admin UI:** Technitium web console on port 5380 on each server.
 - **Query logging:** on (Settings → Logging, "Log All Queries", UTC), written to `/var/log/technitium/dns/<date>.log` and shipped to Splunk (`index=dns`) by a Universal Forwarder on each server, with household privacy filtering ([siem.md](siem.md)).
 
+## Zone sync (dns1 → dns2)
+
+dns1 is the only server where zones are edited. dns2 follows it through a **catalog zone** (RFC 9432):
+- `catalog.demarzo.lab` on dns1 lists the member zones: `demarzo.lab`, `5.12.10.in-addr.arpa`, `30.12.10.in-addr.arpa`. dns2 is a secondary for the catalog, so a zone added to the catalog appears on dns2 without touching dns2.
+- Member zones inherit the catalog's transfer settings: **zone transfers are allowed only to 10.12.5.54** (dns2). Anyone else gets `Transfer failed`.
+- The catalog **notifies dns2** on every change. Measured: a new record was served by dns2 about 10 s after it was added on dns1. Without notify, dns2 only picks changes up on its SOA refresh (900 s). New *zones* in the catalog appear on dns2 at its next catalog check (every 5 min).
+- ⚠️ Member zones also inherit the catalog's **Query Access**. Leave it at **Allow**. If it's restricted, every member zone starts refusing clients on both servers.
+- To check sync, compare the SOA serial on both servers (see the [runbook](../runbooks/add-dns-record.md)).
+
+Found and fixed on 2026-10-01: `30.12.10.in-addr.arpa` (VLAN 30 reverse lookups) existed only on dns1 because it had never been added to the catalog. Catalog notify was off, so dns2 lagged by up to 15 minutes. While notify was being set in the console, the dns2 address briefly landed in the catalog's Query Access field. For a few minutes both servers returned REFUSED for all internal names (internet lookups were unaffected), until Query Access was set back to Allow.
+
 ## Records
 
-| Name | Type | Value |
-|---|---|---|
-| darrow | A | 10.12.5.11 |
-| sevro | A | 10.12.5.12 |
-| ragnar | A | 10.12.5.13 |
-| sefi | A | 10.12.5.14 |
-| dns1 | A | 10.12.5.53 |
-| dns2 | A | 10.12.5.54 |
+**`demarzo.lab`.** SOA and NS: `dns1.demarzo.lab`, `dns2.demarzo.lab`.
 
-## Open items (roadmap Phase 1)
+| Name | Type | Value | PTR |
+|---|---|---|---|
+| gw | A | 10.12.5.1 | ✅ |
+| ops | A | 10.12.5.10 | ✅ |
+| darrow | A | 10.12.5.11 | ✅ |
+| sevro | A | 10.12.5.12 | ✅ |
+| ragnar | A | 10.12.5.13 | ✅ |
+| sefi | A | 10.12.5.14 | ✅ |
+| dns1 | A | 10.12.5.53 | ✅ |
+| dns2 | A | 10.12.5.54 | ✅ |
+| splunk | A | 10.12.30.20 | ✅ |
+| fantasy | A | 10.12.30.30 | ✅ |
+| homepage | A | 10.12.30.100 | (PTR is `dashboard`) |
+| dashboard | A | 10.12.30.100 | ✅ |
+| bots | A | 10.12.30.101 | ✅ |
+| dmz-edge | A | 10.12.50.10 | no reverse zone for the DMZ |
 
-- Add records for `ops` (10.12.5.10), `homepage`, and the gateway (`gw`).
-- The zone's NS record is the unqualified name `dns1.` and doesn't list dns2. Change it to `dns1.demarzo.lab` and `dns2.demarzo.lab`, with matching glue records.
-- Write down how dns2 gets the zone (secondary zone transfer vs. separate copy) and check that it stays in sync after a change.
+## API access
+
+Changes can be made through the Technitium API from `ops` with a dedicated user, **`ops`**. It isn't an administrator: it has the Zones section plus View + Modify on the four zones above. It can add and update records, but **can't delete them**, because Technitium requires the zone's Delete permission even for single records. Its token lives on `ops` at `~/.config/technitium/dns1.token` (mode 600) and is never committed. Zone *options* (catalog membership, notify, transfer ACLs) need an administrator in the console.
 
 Procedure: [runbooks/add-dns-record.md](../runbooks/add-dns-record.md)

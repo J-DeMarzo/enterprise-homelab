@@ -13,7 +13,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [x] Guest metadata: Notes cards and [role/zone tags](architecture/compute.md#tag-scheme) on all guests, following the [guest notes standard](architecture/compute.md#guest-notes-standard)
 - [x] Move `ops` to the management VLAN ([ADR 0005](adr/0005-admin-hosts-in-management-zone.md)). *Evidence:* change record and connectivity checks in the ADR
 - [x] Make `ops` the agent workstation; 301 becomes `bots` with a scoped token; fantasy-app gets its own LXC ([ADR 0008](adr/0008-agent-workstation-in-management-bots-scoped.md)). *Evidence:* [retests T31–T38](architecture/firewall-rules.md#retests-after-the-agent-workstation-move-2026-10-01), bot token 403 on config writes
-- [ ] DNS: records for `ops`, `homepage`, `gw`, `splunk`. Fix the NS records. Document how dns2 syncs
+- [x] DNS: records for `ops`, `homepage`, `gw`, `splunk` (plus `fantasy`, `bots`, `dmz-edge`), NS/SOA fixed to `dns1`/`dns2.demarzo.lab`, sync documented ([dns.md](architecture/dns.md#zone-sync-dns1--dns2)). *Evidence:* identical answers and serials from both servers; a test record reached dns2 in ~10 s. Also found: the VLAN 30 reverse zone was missing on dns2 (fixed)
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
 - [ ] Renumber `splunk` 210 → 151 to fit the [VMID scheme](architecture/compute.md#guest-standards) (node by hundreds, LXC `x00–49`, VM `x50–99`)
 - [ ] **Least-privilege API token** for `claude-mcp@pve`: it currently holds near-admin rights (can create users, allocate SDN, and so on). Replace it with a custom role scoped to VM, storage, and guest-agent operations. Record the change as an ADR
