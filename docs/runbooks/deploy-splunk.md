@@ -1,6 +1,6 @@
 # Runbook: Deploy the Splunk server
 
-**Result:** `splunk` (VMID 210, darrow, 10.12.30.20) running Splunk Enterprise with the `homelab_base` app, rsyslog intake on 514, and a host firewall. Design: [siem.md](../architecture/siem.md). Last done: 2026-09-30 (Splunk 10.4.4, 60-day trial).
+**Result:** `splunk` (VMID 151, originally built as 210, darrow, 10.12.30.20) running Splunk Enterprise with the `homelab_base` app, rsyslog intake on 514, and a host firewall. Design: [siem.md](../architecture/siem.md). Last done: 2026-09-30 (Splunk 10.4.4, 60-day trial).
 
 ## 1. VM
 Clone template 9001 per [deploy-guest-from-template.md](deploy-guest-from-template.md): clone to fast-local on sevro, migrate to darrow. Then set 4 vCPU / 8192 MiB, resize `scsi0` to 150G, `ipconfig0 ip=10.12.30.20/24,gw=10.12.30.1`, tags `infra;net-svc`, and add a Notes card. Check that cloud-init shows `done`, the disk grew, the agent is up, and **NTP is synchronized** (SIEM timestamps depend on it).

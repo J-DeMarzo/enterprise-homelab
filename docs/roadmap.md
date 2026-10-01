@@ -9,13 +9,13 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [x] Inventory generated from the Proxmox API ([`scripts/inventory.py`](../scripts/inventory.py))
 - [x] Secret scanning on commit (gitleaks)
 
-## Phase 1: Hygiene ✅ (mostly)
+## Phase 1: Hygiene ✅
 - [x] Guest metadata: Notes cards and [role/zone tags](architecture/compute.md#tag-scheme) on all guests, following the [guest notes standard](architecture/compute.md#guest-notes-standard)
 - [x] Move `ops` to the management VLAN ([ADR 0005](adr/0005-admin-hosts-in-management-zone.md)). *Evidence:* change record and connectivity checks in the ADR
 - [x] Make `ops` the agent workstation; 301 becomes `bots` with a scoped token; fantasy-app gets its own LXC ([ADR 0008](adr/0008-agent-workstation-in-management-bots-scoped.md)). *Evidence:* [retests T31–T38](architecture/firewall-rules.md#retests-after-the-agent-workstation-move-2026-10-01), bot token 403 on config writes
 - [x] DNS: records for `ops`, `homepage`, `gw`, `splunk` (plus `fantasy`, `bots`, `dmz-edge`), NS/SOA fixed to `dns1`/`dns2.demarzo.lab`, sync documented ([dns.md](architecture/dns.md#zone-sync-dns1--dns2)). *Evidence:* identical answers and serials from both servers; a test record reached dns2 in ~10 s. Also found: the VLAN 30 reverse zone was missing on dns2 (fixed)
-- [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
-- [ ] Renumber `splunk` 210 → 151 to fit the [VMID scheme](architecture/compute.md#guest-standards) (node by hundreds, LXC `x00–49`, VM `x50–99`)
+- [x] Clean up orphaned `unused0` disks on VMIDs 250 and 9000. kali's stray copy on NFS was deleted on the NFS server itself (avoiding the [INC-2026-001](incidents/2026-09-30-darrow-nfs-stale-handle.md) pattern); Kali-Master's local copy on darrow had no dependents. ~69 GB freed
+- [x] Renumber `splunk` 210 → 151 and `dmz-edge` 500 → 401 to fit the [VMID scheme](architecture/compute.md#guest-standards). *Evidence:* both back with unchanged host keys; Splunk down 19 s with all forwarders reconnected and syslog flowing; demarzo.dev down ~2 min ([why](architecture/compute.md#renumbering-a-guest))
 - [x] **Least-privilege API tokens** ([ADR 0009](adr/0009-least-privilege-proxmox-api-identities.md)). `claude-mcp@pve` moved from PVEAdmin to a custom `OpsAgent` role scoped to guest, storage and guest-agent operations. *Evidence:* effective privileges match the role exactly; `User.Modify` returns 403
   - [x] The Discord bot no longer shares it: its own user `discord-bot@pve` holds `PVEAuditor` plus a custom `DiscordBot` role (`VM.PowerMgmt`, `VM.Snapshot`, `Sys.Syslog`) on both targets. *Evidence:* a config write from the bot's token returns 403 `Permission check failed`
   - [x] `claude-mcp@pve` token rotated (`!mcp` → `!ops`, 2026-10-01). It now exists only on `ops`, and the old token returns 401
@@ -33,7 +33,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 
 | Item | Placement | Evidence to finish it |
 |---|---|---|
-| [x] **Splunk Enterprise** 10.4.4 (60-day trial → Free), VM `splunk` (210) at 10.12.30.20, cloned from template 9001 ([runbook](runbooks/deploy-splunk.md)) | darrow · 4 vCPU / 8 GiB / 150 GiB | T11 ✅, T12 ✅, T25 ✅, T26–T30 ✅ |
+| [x] **Splunk Enterprise** 10.4.4 (60-day trial → Free), VM `splunk` (151, was 210) at 10.12.30.20, cloned from template 9001 ([runbook](runbooks/deploy-splunk.md)) | darrow · 4 vCPU / 8 GiB / 150 GiB | T11 ✅, T12 ✅, T25 ✅, T26–T30 ✅ |
 | [x] Indexes, zone lookup, rsyslog intake (`homelab_base` app) | splunk | 7 indexes with retention. Zone lookup verified for one IP per VLAN + external. 514 intake tested |
 | [x] **Omada** remote syslog: gateway ACL events, controller DHCP, access point flows (household-filtered) | gateway, controller, AP | ✅ A kali → Management probe at 11:30:58 was indexed at 11:30:58 as `security → management`, Block. 0 household flows indexed |
 | [x] NTP and time zone (with DST) on the Omada devices (clocks were ~3 min slow). Splunk uses rsyslog's receive time regardless | Omada | ✅ After the fix: gateway within 3 s and AP within 1 s of receive time |

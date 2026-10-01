@@ -34,14 +34,13 @@ A lower-power node that is mainly the storage server (see [storage.md](storage.m
 | Notes | Every guest has a Markdown **Notes** card in the Proxmox UI (see below) |
 | Admin access | All administration happens from `ops` ([ADR 0008](../adr/0008-agent-workstation-in-management-bots-scoped.md)). Its key `demarzo@ops` is the primary admin key on every host, restricted with `from="10.12.5.10"`. The admin desktop's key is the backup. Every host has a `demarzo` login with passwordless sudo, set up by [`scripts/admin-access.sh`](../../scripts/admin-access.sh): key-only SSH and **no root SSH**. Privileged actions are logged as `sudo: demarzo : COMMAND=…`, so a direct root login is an anomaly worth alerting on. Exception: the cluster nodes keep root SSH (keys only) **between each other**, because Proxmox needs it for migrations and the web UI shell. `AllowUsers demarzo root@10.12.5.11 root@10.12.5.12 root@10.12.5.13` enforces that. Root's `authorized_keys` on the nodes must stay a symlink to `/etc/pve/priv/authorized_keys`. Rolled out to all 11 hosts on 2026-10-01. sefi also runs fail2ban (24 h ban after 3 failures). Break-glass: the web UI shell (nodes), `pct enter` (LXCs), `qm guest exec` (VMs). Host keys are pinned on `ops` only after checking the fingerprint from the host's own console |
 
-### VMID exceptions
+### Renumbering a guest
 
-Guests that predate the scheme and still need a new number:
-
-| Guest | Now | Should be | Plan |
-|---|---|---|---|
-| splunk | 210 (VM on darrow) | 151 | Renumber in a maintenance window (backup, then restore as 151) |
-| dmz-edge | 500 (LXC on sefi) | 401 | Not yet scheduled |
+Two guests predated the scheme and were renumbered on 2026-10-01: `splunk` 210 → **151** and `dmz-edge` 500 → **401**. Every guest now fits. On ZFS a renumber takes about a minute of downtime and no copying:
+1. Stop the guest, then `zfs rename` each of its volumes (`vm-<old>-…` → `vm-<new>-…`, `subvol-<old>-…` for LXCs).
+2. Write the config under the new ID with the volume names changed, then remove the old config (`/etc/pve/nodes/<node>/{qemu-server,lxc}/`).
+3. **Start it through the API or the web UI, not `pct start` from a sudo shell on sefi.** sefi's hardening set `umask 027`, so a shell-started LXC gets a `/var/lib/lxc/<id>` directory its unprivileged root can't open ("Failed to open … rootfs"). That's what took `dmz-edge` down for ~2 minutes. Fix: `chmod 755` on that directory and its `rootfs`, then start via the API.
+4. For cloud-init VMs, disable cloud-init in the guest first (`touch /etc/cloud/cloud-init.disabled`), so a new instance-id can't regenerate SSH host keys.
 
 ## Tag scheme
 
