@@ -56,7 +56,7 @@ install -d -m 700 -o demarzo -g demarzo /home/demarzo/.ssh
 f=/home/demarzo/.ssh/authorized_keys; touch \$f
 grep -q 'demarzo@ops\$' \$f || echo '$OPS_KEY' >> \$f
 grep -q 'demarzo@demarzoDesk\$' \$f || echo '$DESK_KEY' >> \$f
-for k in \$f /root/.ssh/authorized_keys; do if [ -f \$k ]; then sed -i '/ claude@10[.]12[.]30[.]101\$/d' \$k; fi; done
+for k in \$f /root/.ssh/authorized_keys; do if [ -f \$k ]; then sed -i --follow-symlinks '/ claude@10[.]12[.]30[.]101\$/d' \$k; fi; done
 chown demarzo:demarzo \$f; chmod 600 \$f
 echo 'demarzo ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-demarzo
 chmod 440 /etc/sudoers.d/90-demarzo
