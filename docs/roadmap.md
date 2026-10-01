@@ -14,6 +14,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
 - [x] Move `ops` to the management VLAN ([ADR 0005](adr/0005-admin-hosts-in-management-zone.md)). *Evidence:* change record and connectivity checks in the ADR
 - [ ] DNS: records for `ops`, `homepage`, `gw`, `splunk`. Fix the NS records. Document how dns2 syncs
 - [ ] Clean up orphaned `unused0` disks on VMIDs 250 and 9000
+- [ ] Renumber `splunk` 210 → 151 to fit the [VMID scheme](architecture/compute.md#guest-standards) (node by hundreds, LXC `x00–49`, VM `x50–99`)
 - [ ] **Least-privilege API token** for `claude-mcp@pve`: it currently holds near-admin rights (can create users, allocate SDN, and so on). Replace it with a custom role scoped to VM, storage, and guest-agent operations. Record the change as an ADR
 - [x] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB, both DNS servers) and build the golden template `ubuntu-2404-ci` (9001). *Evidence:* [runbook](runbooks/build-ubuntu-template.md), verified test clone, [INC-2026-001](incidents/2026-09-30-darrow-nfs-stale-handle.md)
 
@@ -32,7 +33,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 | [x] **Omada** remote syslog: gateway ACL events, controller DHCP, access point flows (household-filtered) | gateway, controller, AP | ✅ A kali → Management probe at 11:30:58 was indexed at 11:30:58 as `security → management`, Block. 0 household flows indexed |
 | [x] NTP and time zone (with DST) on the Omada devices (clocks were ~3 min slow). Splunk uses rsyslog's receive time regardless | Omada | ✅ After the fix: gateway within 3 s and AP within 1 s of receive time |
 | [x] **Technitium** query logs with the household privacy filter | dns1, dns2 | ✅ 7-case filter test all correct. Live: Internal shows only failures, lab/IoT in full, zones resolved |
-| [ ] Universal Forwarders: ~~ops~~ ✅, ~~dns1~~ ✅, ~~dns2~~ ✅, homepage, claude, Proxmox hosts ([installer](../splunk/forwarder/install-uf.sh)) | – | Journald from each host in `linux`. ops: ✅ logger test indexed within seconds |
+| [ ] Universal Forwarders: ~~ops~~ ✅, ~~dns1~~ ✅, ~~dns2~~ ✅, homepage, claude, fantasy, Proxmox hosts ([installer](../splunk/forwarder/install-uf.sh)) | – | Journald from each host in `linux`. ops: ✅ logger test indexed within seconds |
 | [ ] **dmz-edge** forwarder: Caddy + cloudflared → `web` (rule 8 gets DMZ as a source) | dmz-edge | Real internet requests to demarzo.dev searchable, with the client IP taken from `Cf-Connecting-Ip` |
 | [ ] Zone overview dashboard (deny matrix, DNS by zone, new DHCP devices) | – | Screenshot (aggregates only) |
 | [ ] **Alert queue** + first detections (new device on Management, denied probes toward Management, new IoT domain, DNS tunneling, web probing) | – | Each detection fired by a test |

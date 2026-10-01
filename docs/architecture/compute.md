@@ -25,13 +25,22 @@ A lower-power node that is mainly the storage server (see [storage.md](storage.m
 
 | Standard | Practice |
 |---|---|
-| VMIDs | Grouped by role: `1xx` desktops, `2xx` core/security, `3xx` apps, `4xx` Sefi-hosted, `9xxx` templates |
+| VMIDs | The hundreds digit says **where a guest lives**: `1xx` darrow, `2xx` sevro, `3xx` ragnar, `4xx` sefi. Within each node, `x00–x49` are LXCs and `x50–x99` are VMs, so `201` reads as "sevro, container" at a glance. Templates are `9xxx`. Take the next free number in the range ([exceptions](#vmid-exceptions)) |
 | Containers | Unprivileged LXC by default |
 | VMs | VirtIO disk/NIC, QEMU guest agent enabled, cloud-init where supported |
 | Templates | Golden images (`9xxx`) stored on `VM-Templates` (NFS from pax) so any cluster node can clone them. **Always full-cloned to `fast-local` on the template's node, then migrated** to the target node ([runbook](../runbooks/deploy-guest-from-template.md)). Proxmox can't clone directly to another node's local storage, and linked clones would have to stay on NFS, so running VMs would depend on Sefi |
 | Snapshots | Taken before risky changes. The lab VM `kali` keeps a `Clean` baseline snapshot |
 | Critical guests | `onboot=1`; dns1 also has deletion protection enabled |
 | Notes | Every guest has a Markdown **Notes** card in the Proxmox UI (see below) |
+
+### VMID exceptions
+
+Guests that predate the scheme and still need a new number:
+
+| Guest | Now | Should be | Plan |
+|---|---|---|---|
+| splunk | 210 (VM on darrow) | 151 | Renumber in a maintenance window (backup, then restore as 151) |
+| dmz-edge | 500 (LXC on sefi) | 401 | Not yet scheduled |
 
 ## Tag scheme
 
@@ -56,6 +65,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | ops | `admin` | `net-mgmt` |
 | claude | `admin` | `net-svc` |
 | homepage | `app` | `net-svc` |
+| fantasy | `app` | `net-svc` |
 | dmz-edge | `app` | `net-dmz` |
 | splunk | `infra` | `net-svc` |
 | kali, Kali-Master | `lab` | `net-lab` |
