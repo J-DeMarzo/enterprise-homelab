@@ -68,10 +68,10 @@ sudo fstrim -av && sudo poweroff
 
 ## 6. Set defaults and convert
 ```bash
-qm set 9001 --ipconfig0 ip=dhcp --sshkeys <desktop-key-only> --tags "template;net-svc"
+qm set 9001 --ipconfig0 ip=dhcp --sshkeys <file: desktop key + from="10.12.5.10" ops key> --tags "template;net-svc"
 qm template 9001
 ```
-The default VLAN stays **30 (Servers)** so a clone never lands on Management by accident.
+The default VLAN stays **30 (Servers)** so a clone never lands on Management by accident. Since 2026-10-01 the template carries two keys: `demarzo@ops` (primary, usable only from `ops`) and the admin desktop's key (backup).
 
 ## 7. Test with a throwaway clone
 Clone, boot, and check that the clone has its **own** hostname, machine-id, and SSH host key, that cloud-init shows `done`, that the guest agent answers, and that only the configured keys are authorized. Then destroy the test clone.

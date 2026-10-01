@@ -32,6 +32,7 @@ A lower-power node that is mainly the storage server (see [storage.md](storage.m
 | Snapshots | Taken before risky changes. The lab VM `kali` keeps a `Clean` baseline snapshot |
 | Critical guests | `onboot=1`; dns1 also has deletion protection enabled |
 | Notes | Every guest has a Markdown **Notes** card in the Proxmox UI (see below) |
+| Admin access | All administration happens from `ops` ([ADR 0008](../adr/0008-agent-workstation-in-management-bots-scoped.md)). Its key `demarzo@ops` is the primary admin key on every host, restricted with `from="10.12.5.10"`. The admin desktop's key is the backup. Key-only SSH everywhere. Root login is the Proxmox default on the cluster nodes and the LXCs. On sefi it's disabled (`PermitRootLogin no`, fail2ban: 24 h ban after 3 failures), so use `demarzo` + sudo. Host keys are pinned on `ops` only after checking the fingerprint from the host's own console |
 
 ### VMID exceptions
 

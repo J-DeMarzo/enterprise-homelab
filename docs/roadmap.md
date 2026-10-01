@@ -20,7 +20,7 @@ Guiding rule: **enterprise patterns at a homelab scale.** An item is checked off
   - [x] The Discord bot no longer shares it: its own user `discord-bot@pve` holds `PVEAuditor` plus a custom `DiscordBot` role (`VM.PowerMgmt`, `VM.Snapshot`, `Sys.Syslog`) on both targets. *Evidence:* a config write from the bot's token returns 403 `Permission check failed`
   - [x] `claude-mcp@pve` token rotated (`!mcp` → `!ops`, 2026-10-01). It now exists only on `ops`, and the old token returns 401
   - [ ] Scope `claude-mcp@pve`'s own role down from `PVEAdmin`
-- [ ] Restore SSH access to sefi: `sshd` accepts public keys only (since an old hardening playbook) and no admin key is authorized. Add the `ops` key from the web UI shell
+- [x] Restore SSH access to sefi, and make `ops` the admin entry point everywhere. *Evidence:* `ssh <host>` from `ops` works on all 11 infra hosts with host keys verified from each host's own console. On sefi it's `demarzo` + sudo, because the old hardening playbook disabled root login and installed fail2ban (24 h ban after 3 failures). It banned `ops` once during setup
 - [x] **Rebuild `ops`** as a headless Ubuntu 24.04 jump box (2 vCPU / 4 GiB, both DNS servers) and build the golden template `ubuntu-2404-ci` (9001). *Evidence:* [runbook](runbooks/build-ubuntu-template.md), verified test clone, [INC-2026-001](incidents/2026-09-30-darrow-nfs-stale-handle.md)
 
 ## Phase 2: Safe to attack ✅
