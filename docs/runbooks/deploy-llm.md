@@ -35,11 +35,11 @@ usermod -a -G ollama demarzo
 [Service]
 Environment="OLLAMA_HOST=0.0.0.0:11434"
 Environment="OLLAMA_CONTEXT_LENGTH=16384"
-Environment="OLLAMA_KEEP_ALIVE=30m"
+Environment="OLLAMA_KEEP_ALIVE=-1"
 Environment="OLLAMA_NUM_PARALLEL=1"
 Environment="OLLAMA_MAX_LOADED_MODELS=1"
 ```
-`systemctl daemon-reload && systemctl enable --now ollama`. Upgrading later: stop the service, `rm -rf /usr/local/lib/ollama`, and repeat the `curl | tar` line.
+`systemctl daemon-reload && systemctl enable --now ollama`. `KEEP_ALIVE=-1` keeps the model (3.6 GB) loaded for good: unloading after idle also throws away the prompt cache, so the next session would start cold. Upgrading later: stop the service, `rm -rf /usr/local/lib/ollama`, and repeat the `curl | tar` line.
 
 ## 4. Host firewall
 Ollama has no authentication. ufw is the only thing between it and the rest of Servers.
@@ -76,39 +76,54 @@ Measured 2026-10-01 on 6 cores of a Ryzen 5 PRO 5650GE, through `/api/generate` 
   "$schema": "https://opencode.ai/config.json",
   // Session titles are a second model request; on the CPU-only local model it
   // queues behind the main prompt and doubles the wait. Titles are cosmetic.
-  "agent": { "title": { "disable": true } },
+  "agent": {
+    "title": { "disable": true },
+    // Lean agent for the local model. The default build agent sends ~11K tokens
+    // (5.5K system prompt + 10 tool schemas) before the first word: ~3.5 min of
+    // prompt reading on CPU. This one sends ~3.3K.
+    "local": {
+      "mode": "primary",
+      "description": "Small local model on llm (Ollama, CPU). Short, explicit tasks.",
+      "model": "ollama/qwen3.5:4b",
+      "prompt": "You are a concise coding assistant working in the user's project. Use the tools to read, search and edit files. Read a file before editing it. Use paths relative to the project root. Keep answers short.",
+      "tools": { "task": false, "todowrite": false, "todoread": false, "webfetch": false, "skill": false },
+      "permission": { "bash": "ask", "edit": "ask" }
+    }
+  },
   "provider": {
     "ollama": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Ollama (llm)",
       "options": {
         "baseURL": "http://llm.demarzo.lab:11434/v1",
-        // A cold ~10K-token agent prompt takes ~3 min to read on CPU before the
-        // first byte; the 5 min defaults cut it off and retry from scratch.
+        // A cold agent prompt can take minutes to read on CPU before the first
+        // byte; the 5 min defaults cut it off and retry from scratch.
         "headerTimeout": 900000,
         "chunkTimeout": 900000,
         "timeout": 1800000
       },
       "models": {
-        "qwen3.5:4b": { "name": "Qwen3.5 4B (local)", "tools": true, "reasoning": true, "limit": { "context": 16384, "output": 4096 } }
+        // reasoning_effort none: thinking costs ~40 s per step at 10 tok/s.
+        "qwen3.5:4b": { "name": "Qwen3.5 4B (local)", "tools": true, "limit": { "context": 16384, "output": 4096 }, "options": { "reasoningEffort": "none" } }
       }
     }
   }
 }
 ```
-Use it with `opencode -m ollama/qwen3.5:4b`, or pick it with `/models` in the TUI.
+Start it with **`opencode-local`** (`~/.local/bin`, runs `exec opencode --agent local "$@"`; `exec` keeps the process named `opencode` so herdr recognizes it), or from herdr: `herdr agent start <name> --kind opencode --pane <id> -- --agent local`.
 
-What to expect (tested 2026-10-01, `opencode run` from `ops`):
+**Why the lean agent.** A captured request from the default `build` agent was 21.8K chars of system prompt plus 21.1K chars of tool schemas (`bash` 5.3K, `task` 3.9K, `todowrite` 2.7K, …): about 11.1K tokens, or 3.5 minutes of prompt reading before the first word. An agent `prompt` replaces the default system prompt, and dropping `task`, `todowrite`, `webfetch` and `skill` leaves about 3.4K tokens. Capture method: point a throwaway provider at a local `http.server` that saves the POST body.
 
-| Case | Time |
-|---|---|
-| Cold first turn (OpenCode's ~9.9K-token system prompt and tools, nothing cached) | about 3 min of prompt reading before the first token |
-| Later turns, prefix already cached on `llm` | 30–65 s |
-| "Read marker-7731.txt with the read tool and reply with its contents" | ✅ read the file, 65 s |
-| Same task, worded loosely ("the file whose name starts with marker-") | 1 of 2 tries used the tool; the other answered without it |
-| Same task, second run | ❌ asked to read `/marker-7731.txt` (absolute path, outside the project), which OpenCode refused |
+**Why `reasoningEffort: none`.** `qwen3.5` thinks before every answer by default: "What is 17*23?" took 39.7 s and 434 tokens with thinking, 0.6 s and 4 tokens without. An agent thinks at every step, so this matters more than anything else. (`think: false` in the OpenAI-compatible body is ignored; `reasoning_effort: "none"` works.)
 
-A 4B model follows tool instructions only when they're explicit: name the file and the tool. Use it for small, well-defined jobs. Use a cloud agent for anything that needs planning across files.
+Measured 2026-10-01 in this repo, "Read README.md with the read tool and reply with only its first heading line":
+
+| | Default `build` agent, thinking on | `local` agent |
+|---|---|---|
+| Cold (Ollama just restarted) | canceled after 3.5 min, still reading the 11.1K-token prompt | **105 s** for the whole task |
+| Warm | | **44 s**: 4 s for the first step, 35 s to read the README the tool returned |
+
+Time now scales with what the model reads: about 55 tokens/s, so a 2K-token file adds about 35 s. Tool use with explicit instructions works; worded loosely, a 4B model sometimes skips the tools or invents paths.
 
 > ⚠️ **Known issue:** twice, the first `opencode run` after a config change sat after `message=init` in `~/.local/share/opencode/log/opencode.log` and never contacted Ollama (no request in `journalctl -u ollama`). Stopping it and running again worked both times. If a run shows no Ollama request within a minute, restart it.
 
