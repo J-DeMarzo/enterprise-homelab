@@ -1,0 +1,20 @@
+``` Name:        IoT device resolves a never-seen domain
+    ATT&CK:      T1071 (Application Layer Protocol)
+    Data:        index=dns src_zone=iot + lookup iot_known_domains
+    Cron:        */15 * * * *
+    Window:      -20m@m to -5m@m
+    Severity:    low (learning: the baseline started 2026-09-30, review at the 7-day license check)
+    Tested with: a temporary LXC on VLAN 20 resolving a domain no IoT device had used (2026-10-01)
+    False positives: firmware updates and new cloud endpoints. "Base domain" is the last
+                 two labels, so multi-part suffixes (co.uk) group one level too high ```
+index=dns src_zone=iot reply_code=NoError query_type!=PTR
+| eval q=lower(query)
+| rex field=q "(?<base_domain>[^.]+\.[^.]+)$"
+| search NOT base_domain="demarzo.lab"
+| lookup iot_known_domains base_domain OUTPUT first_seen AS known_since
+| where isnull(known_since)
+| stats min(_time) AS first count AS queries dc(base_domain) AS new_domains values(base_domain) AS base_domains by src_ip src_zone
+| eval detection="new_iot_domain", severity="low", attack="T1071", _time=first
+| eval summary=src_ip." (IoT) resolved ".new_domains." never-seen domain(s): ".mvjoin(mvindex(base_domains,0,4),", ")
+| fields _time detection severity attack summary src_ip src_zone new_domains base_domains queries
+| collect index=soc_alerts source="detection:new_iot_domain"

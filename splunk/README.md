@@ -11,7 +11,10 @@ apps/homelab_base/        installed on the indexer (splunk, 10.12.30.20)
   lookups/vlan_zones.csv  10.12.<vlan>.0/24 → zone, trust
   lookups/omada_acl_rules.csv  gateway ACL rule ID → rule name
   default/app.conf, data/ui/nav  app label "Homelab SOC", nav (Zone overview is the home page)
-  default/data/ui/views/  Dashboard Studio dashboards (version="2" XML with the JSON definition inside)
+  default/data/ui/views/  Dashboard Studio dashboards (version="2" XML with the JSON definition inside):
+                          zone_overview, alert_queue
+  default/savedsearches.conf  GENERATED from detections/ by build-savedsearches.py, don't edit
+build-savedsearches.py    detections/*.spl (+ baselines/) → savedsearches.conf
 forwarder/install-uf.sh   Universal Forwarder installer: checksum-verified package, localhost-only mgmt port,
                           roles `linux` (journald → linux), `technitium` (query logs → dns),
                           `pve` (Proxmox API access log → linux) and `caddy` (Caddy JSON → web)

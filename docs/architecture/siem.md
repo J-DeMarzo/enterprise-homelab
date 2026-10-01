@@ -87,13 +87,29 @@ In the **Homelab SOC** app (`homelab_base`), Dashboard Studio, defined in [`defa
 |---|---|
 | **Zone overview** (app home) | Deny count and distinct denied sources · **deny matrix** (source zone × destination zone) · denies over time by ACL rule · DNS queries by zone · failed/blocked lookups by zone · new DHCP devices (24 h) by zone · gateway config changes · **data health** (forwarder heartbeat and last event per index, for every host) |
 
+| **Alert queue** | Alert counts by severity · alerts over time by detection · counts per detection · the queue, newest first. Clicking a row opens its **pivot search** into the source data (for example, all of that IP's DNS queries) |
+
 Data health uses each forwarder's `_internal` heartbeat rather than its last log line, so a quiet host isn't reported as down. The syslog-only senders (gateway, controller, AP) have no heartbeat and are flagged after an hour of silence.
+
+## Alert queue (detections without alert actions)
+Splunk Free has no alerting, so detections are **scheduled reports** that write their hits to the `soc_alerts` summary index (`collect`). The Alert queue dashboard is the analyst's view of that index. The design is Free-proof from day one, even on the trial.
+
+```
+detections/*.spl ──build-savedsearches.py──▶ savedsearches.conf ──deploy-app.sh──▶ splunk
+                                                                                       │
+   every 15 min, window -20m@m..-5m@m (no overlap, 5 min indexing slack)               ▼
+   search ▶ threshold ▶ eval detection/severity/attack/summary ▶ collect index=soc_alerts ▶ Alert queue
+```
+
+- The SPL lives only in [`detections/`](../../detections/). `savedsearches.conf` is generated and never edited by hand.
+- **Baselines** for the "never seen before" detections are daily `outputlookup` searches (`known_mgmt_devices`, `iot_known_domains`). Their files exist only on the server: they're learned state, and the IoT list describes household devices.
+- Each detection and its test result is listed in the [detections README](../../detections/README.md).
 
 ## Privacy rules
 - **Household DNS:** queries from Internal (10.12.10.0/24) and Guest (10.12.99.0/24) are dropped at index time **unless** they failed or were blocked (NXDOMAIN, SERVFAIL, REFUSED, or a `0.0.0.0`/`::` answer). Failures that are only search-domain artifacts (`<site>.demarzo.lab` NXDOMAIN) are dropped too, because they'd reveal the site being browsed. Security signals stay, and browsing history is never stored ([ADR 0007](../adr/0007-splunk-topology-and-household-data.md)). Verified with a 7-case test file (all correct) and on live data (Internal shows only failures).
 - **Household Wi-Fi flows:** the access point logs every client connection. Records to or from Internal or Guest are sent to `nullQueue` ([`transforms.conf`](../../splunk/apps/homelab_base/default/transforms.conf) `drop_household_eap`). Verified: 0 household records indexed, while ~1,000 were present in the raw stream.
 - **Raw syslog buffer:** `/var/log/remote` holds the unfiltered stream until Splunk reads it (seconds). Only **today's** file is kept ([cron job](../../splunk/server/cron-remote-cleanup)).
-- **Website visitors:** dmz-edge logs contain real visitors' IP addresses. Raw events and screenshots of them are **never** published in this repo, only aggregates.
+- **Website visitors:** dmz-edge logs contain real visitors' IP addresses. Raw events and screenshots of them are **never** published in this repo, only aggregates. The same applies to `web_probing` alerts in `soc_alerts`, and to screenshots of the Alert queue.
 
 ## Access control
 Splunk Free has no authentication, so network controls are the only protection. They're layered:

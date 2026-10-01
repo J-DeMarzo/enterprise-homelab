@@ -1,0 +1,19 @@
+``` Name:        Web probing against demarzo.dev
+    ATT&CK:      T1595.003 (Active Scanning: Wordlist Scanning)
+    Data:        index=web sourcetype=caddy:access
+    Cron:        */15 * * * *
+    Window:      -20m@m to -5m@m
+    Severity:    low (internet noise: the site is static, so the probes can't succeed), medium on any 2xx for a scanner path
+    Tested with: curl of 20 scanner paths from ops through Cloudflare (2026-10-01). Real scanners fire it too
+    False positives: a visitor following many broken links (needs 10 distinct 4xx URIs) ```
+index=web sourcetype=caddy:access
+| eval scanner_path=if(match(uri, "(?i)(/\.env|/\.git|wp-login|wp-admin|wp-content|wp-includes|xmlrpc|phpmyadmin|/cgi-bin/|\.php|/actuator|/\.aws|/server-status|\.\./|/\.ssh|/config\.(json|yml|yaml)|/backup|\.sql)"), 1, 0)
+| stats min(_time) AS first count AS requests dc(uri) AS distinct_uris sum(scanner_path) AS scanner_paths count(eval(status>=400)) AS errors count(eval(scanner_path=1 AND status<300)) AS scanner_hits_2xx values(eval(if(scanner_path=1, uri, null()))) AS sample_paths by src_ip
+| where scanner_paths>=3 OR (errors>=10 AND distinct_uris>=10)
+| eval sample_paths=mvindex(sample_paths, 0, 9)
+| eval severity=if(scanner_hits_2xx>0, "medium", "low")
+| lookup vlan_zones cidr AS src_ip OUTPUT zone AS src_zone
+| eval detection="web_probing", attack="T1595.003", _time=first
+| eval summary=src_ip." sent ".requests." requests (".scanner_paths." scanner paths, ".errors." errors) to demarzo.dev"
+| fields _time detection severity attack summary src_ip src_zone requests distinct_uris scanner_paths errors scanner_hits_2xx sample_paths
+| collect index=soc_alerts source="detection:web_probing"

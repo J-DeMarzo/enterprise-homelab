@@ -1,0 +1,291 @@
+<dashboard version="2" theme="dark">
+  <label>Alert queue</label>
+  <description>Detection hits from the soc_alerts summary index, the homemade alert queue for Splunk Free (ADR 0006).</description>
+  <definition><![CDATA[
+{
+  "title": "Alert queue",
+  "description": "Detection hits from the soc_alerts summary index, the homemade alert queue for Splunk Free (ADR 0006).",
+  "visualizations": {
+    "viz_1": {
+      "type": "splunk.singlevalue",
+      "title": "Alerts",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_1"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_2": {
+      "type": "splunk.singlevalue",
+      "title": "High",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_2"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_3": {
+      "type": "splunk.singlevalue",
+      "title": "Medium",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_3"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_4": {
+      "type": "splunk.singlevalue",
+      "title": "Low",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_4"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_5": {
+      "type": "splunk.column",
+      "title": "Alerts over time by detection",
+      "options": {
+        "stackMode": "stacked"
+      },
+      "dataSources": {
+        "primary": "ds_5"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_6": {
+      "type": "splunk.table",
+      "title": "By detection",
+      "options": {},
+      "dataSources": {
+        "primary": "ds_6"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "auto",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_7": {
+      "type": "splunk.table",
+      "title": "Queue: newest first (click a row to open its pivot search)",
+      "options": {
+        "count": 15
+      },
+      "description": "Written by the scheduled detections (detections/). The Free-tier replacement for alert actions.",
+      "dataSources": {
+        "primary": "ds_7"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.customUrl",
+          "options": {
+            "url": "/app/homelab_base/search?q=search%20$row.investigate.value|u$&earliest=-24h&latest=now",
+            "newTab": true
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "ds_1": {
+      "type": "ds.search",
+      "name": "Alerts",
+      "options": {
+        "query": "index=soc_alerts | stats count"
+      }
+    },
+    "ds_2": {
+      "type": "ds.search",
+      "name": "High",
+      "options": {
+        "query": "index=soc_alerts severity=high | stats count"
+      }
+    },
+    "ds_3": {
+      "type": "ds.search",
+      "name": "Medium",
+      "options": {
+        "query": "index=soc_alerts severity=medium | stats count"
+      }
+    },
+    "ds_4": {
+      "type": "ds.search",
+      "name": "Low",
+      "options": {
+        "query": "index=soc_alerts severity=low | stats count"
+      }
+    },
+    "ds_5": {
+      "type": "ds.search",
+      "name": "Alerts over time by detection",
+      "options": {
+        "query": "index=soc_alerts | timechart count by detection"
+      }
+    },
+    "ds_6": {
+      "type": "ds.search",
+      "name": "By detection",
+      "options": {
+        "query": "index=soc_alerts | stats count latest(_time) AS last by detection attack | eval last=strftime(last, \"%F %T\") | sort - count"
+      }
+    },
+    "ds_7": {
+      "type": "ds.search",
+      "name": "Queue: newest first (click a row to open its pivot search)",
+      "options": {
+        "query": "index=soc_alerts | eval investigate=case(detection==\"denied_probes_to_management\", \"index=netfw sourcetype=omada:gateway src_ip=\".src_ip.\" dest_zone=management\", detection==\"new_device_on_management\", \"index=netfw sourcetype=omada:controller \\\"\".src_mac.\"\\\"\", detection==\"new_iot_domain\", \"index=dns src_ip=\".src_ip, detection==\"dns_tunneling\", \"index=dns src_ip=\".src_ip.\" query=*.\".base_domain, detection==\"web_probing\", \"index=web sourcetype=caddy:access src_ip=\".src_ip, true(), \"index=soc_alerts\") | sort - _time | table _time severity detection attack summary src_ip src_zone investigate"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "inputs": {
+    "input_time": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-7d@d,now"
+      }
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": {
+      "width": 1440,
+      "height": 850
+    },
+    "structure": [
+      {
+        "item": "viz_1",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_2",
+        "type": "block",
+        "position": {
+          "x": 360,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_3",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_4",
+        "type": "block",
+        "position": {
+          "x": 1080,
+          "y": 0,
+          "w": 360,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_5",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 110,
+          "w": 960,
+          "h": 280
+        }
+      },
+      {
+        "item": "viz_6",
+        "type": "block",
+        "position": {
+          "x": 960,
+          "y": 110,
+          "w": 480,
+          "h": 280
+        }
+      },
+      {
+        "item": "viz_7",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 390,
+          "w": 1440,
+          "h": 460
+        }
+      }
+    ],
+    "globalInputs": [
+      "input_time"
+    ]
+  }
+}
+  ]]></definition>
+</dashboard>

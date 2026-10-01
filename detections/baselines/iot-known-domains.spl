@@ -1,0 +1,11 @@
+``` Name:        Baseline - IoT base domains
+    Purpose:     feeds command-and-control-new-iot-domain.spl
+    Cron:        23 3 * * *
+    Window:      -14d@d to -1h@h
+    Note:        domains not seen for 14 days drop out and would alert again. Stays out of the
+                 repo: it describes household devices' traffic ```
+index=dns src_zone=iot reply_code=NoError query_type!=PTR
+| eval q=lower(query)
+| rex field=q "(?<base_domain>[^.]+\.[^.]+)$"
+| stats min(_time) AS first_seen max(_time) AS last_seen by base_domain
+| outputlookup iot_known_domains

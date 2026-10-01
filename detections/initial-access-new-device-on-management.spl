@@ -1,0 +1,21 @@
+``` Name:        New device on the Management VLAN
+    ATT&CK:      T1200 (Hardware Additions)
+    Data:        index=netfw sourcetype=omada:controller (DHCP leases, by MAC)
+                 + index=dns (DNS clients in Management, by IP) + lookup known_mgmt_devices
+    Cron:        */15 * * * *
+    Window:      -20m@m to -5m@m
+    Severity:    high
+    Tested with: a temporary LXC on VLAN 5 (2026-10-01). With DHCP it got no lease and the
+                 controller logged nothing, so a DHCP-only rule was blind to it. With a static
+                 IP and one DNS lookup, the DNS signal fired
+    False positives: a legitimate new admin device. The daily baseline learns it,
+                 so it alerts once ```
+(index=netfw sourcetype=omada:controller "DHCP Server allocated" src_zone=management) OR (index=dns src_zone=management)
+| eval device=if(index=="dns", src_ip, src_mac), kind=if(index=="dns", "dns_client_ip", "dhcp_mac")
+| stats min(_time) AS first count AS events latest(src_ip) AS src_ip by device kind
+| lookup known_mgmt_devices device OUTPUT first_seen AS known_since
+| where isnull(known_since)
+| eval detection="new_device_on_management", severity="high", attack="T1200", src_zone="management", _time=first
+| eval summary="Unknown ".if(kind=="dhcp_mac", "MAC ".device." got a Management DHCP lease (".src_ip.")", "Management address ".device." started using DNS")
+| fields _time detection severity attack summary src_ip src_zone device kind events
+| collect index=soc_alerts source="detection:new_device_on_management"

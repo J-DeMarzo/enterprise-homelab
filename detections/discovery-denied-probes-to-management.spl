@@ -1,0 +1,17 @@
+``` Name:        Denied probes toward Management
+    ATT&CK:      T1046 (Network Service Discovery)
+    Data:        index=netfw sourcetype=omada:gateway action=Block
+    Cron:        */15 * * * *
+    Window:      -20m@m to -5m@m
+    Severity:    high from Security/DMZ/IoT/Guest, medium from other zones
+    Tested with: nmap from kali against two Management hosts (2026-10-01)
+    False positives: a single client retrying one service (e.g. a phone's DNS-over-TLS
+                 to dns1/dns2 on :853) stays below the threshold: it needs 5 ports or 3 hosts ```
+index=netfw sourcetype=omada:gateway action=Block dest_zone=management
+| stats count AS events dc(dest_port) AS ports dc(dest_ip) AS targets values(dest_ip) AS dest_ips values(dest_port) AS dest_ports min(_time) AS first max(_time) AS last by src_ip src_zone
+| where ports>=5 OR targets>=3
+| eval severity=if(src_zone IN ("security","dmz","iot","guest"), "high", "medium")
+| eval detection="denied_probes_to_management", attack="T1046", _time=first
+| eval summary=src_ip." (".src_zone.") was blocked ".events." times toward ".targets." Management host(s) on ".ports." port(s)"
+| fields _time detection severity attack summary src_ip src_zone events ports targets dest_ips dest_ports first last
+| collect index=soc_alerts source="detection:denied_probes_to_management"

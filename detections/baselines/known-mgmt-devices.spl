@@ -1,0 +1,12 @@
+``` Name:        Baseline - known Management devices
+    Purpose:     feeds initial-access-new-device-on-management.spl (DHCP MACs and DNS client IPs)
+    Cron:        17 3 * * *
+    Window:      -30d@d to -1h@h
+    Note:        stops an hour back, so a device seen in the last hour is still "new" for
+                 the next detection run. Merges with the existing list: known devices are never dropped ```
+(index=netfw sourcetype=omada:controller "DHCP Server allocated" src_zone=management) OR (index=dns src_zone=management)
+| eval device=if(index=="dns", src_ip, src_mac), kind=if(index=="dns", "dns_client_ip", "dhcp_mac")
+| stats min(_time) AS first_seen by device kind
+| inputlookup append=true known_mgmt_devices
+| stats min(first_seen) AS first_seen by device kind
+| outputlookup known_mgmt_devices

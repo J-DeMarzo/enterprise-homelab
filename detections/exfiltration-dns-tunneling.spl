@@ -1,0 +1,20 @@
+``` Name:        DNS tunneling (many long, unique names under one domain)
+    ATT&CK:      T1071.004 (Application Layer Protocol: DNS), T1048 (Exfiltration Over Alternative Protocol)
+    Data:        index=dns
+    Cron:        */15 * * * *
+    Window:      -20m@m to -5m@m
+    Severity:    high
+    Tested with: 100 lookups of random 40-character labels from kali (2026-10-01)
+    False positives: none in the first 24 h of data. The busiest real pattern (an IoT
+                 device under apple.com) peaked at 37 names averaging 12 characters ```
+index=dns
+| eval q=lower(query)
+| rex field=q "^(?<label>.+)\.(?<base_domain>[^.]+\.[^.]+)$"
+| eval label_len=len(label)
+| stats min(_time) AS first count AS queries dc(q) AS unique_names avg(label_len) AS avg_label_len max(label_len) AS max_label_len by src_ip src_zone base_domain
+| where unique_names>=50 AND avg_label_len>=30
+| eval avg_label_len=round(avg_label_len,1)
+| eval detection="dns_tunneling", severity="high", attack="T1071.004", _time=first
+| eval summary=src_ip." (".src_zone.") queried ".unique_names." unique names under ".base_domain." (avg label ".avg_label_len." chars)"
+| fields _time detection severity attack summary src_ip src_zone base_domain queries unique_names avg_label_len max_label_len
+| collect index=soc_alerts source="detection:dns_tunneling"
