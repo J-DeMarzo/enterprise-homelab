@@ -47,7 +47,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 ## Phase 4: Something worth defending
 | Item | Placement | Evidence to finish it |
 |---|---|---|
-| [ ] **Windows Server DC** (evaluation), small AD domain | VLAN 40 · ~4 GiB | Domain up, lab DNS forwards to dns1/dns2 |
+| [x] **Windows Server DC** (evaluation), small AD domain: `dc01` (VM 152, darrow), `ad.demarzo.lab` ([runbook](runbooks/build-domain-controller.md)) | VLAN 40 · 4 GiB | ✅ Domain up (dcdiag passes), and the DC forwards to dns1/dns2: its lookups show up in Splunk at dns1 from the Security zone. The evaluation expires 2027-03-30 |
 | [ ] **Windows 11 client**, domain-joined | VLAN 40 · ~4 GiB | Domain logon events in Splunk |
 | [ ] **Sysmon** (community config) + Universal Forwarder on both | – | Sysmon process/network/DNS events in Splunk, within the ingest budget |
 | [ ] Golden templates for both, for rebuilding when the evaluations expire | VM-Templates (NFS) | Runbook plus one timed rebuild |

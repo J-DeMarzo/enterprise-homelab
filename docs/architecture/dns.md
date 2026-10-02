@@ -45,6 +45,7 @@ Found and fixed on 2026-10-01: `30.12.10.in-addr.arpa` (VLAN 30 reverse lookups)
 | homepage | A | 10.12.30.100 | (PTR is `dashboard`) |
 | dashboard | A | 10.12.30.100 | ✅ |
 | bots | A | 10.12.30.101 | ✅ |
+| dc01 | A | 10.12.40.10 | no reverse zone for Security. The AD domain `ad.demarzo.lab` itself is served by dc01, not Technitium |
 | dmz-edge | A | 10.12.50.10 | no reverse zone for the DMZ |
 
 ## API access

@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+"""vm152 - the ONLY tool the local dc-builder agent has for touching infrastructure.
+
+Every action is hard-wired to VM 152 on darrow (TheRising cluster), on the Security
+VLAN 40. There is no delete, no other VMID, no other VLAN, and no free-form API
+call. Secrets (the Proxmox token, the DC admin password) are read here and never
+printed. Every call is logged to log/vm152.log.
+
+Run "vm152 help" for the commands.
+"""
+import base64, json, os, re, shlex, ssl, subprocess, sys, time
+import urllib.error, urllib.parse, urllib.request
+import xml.dom.minidom
+from datetime import datetime, timezone
+
+VMID, NODE, VLAN = 152, "darrow", 40
+# Installed root-owned in /usr/local/bin so the agent can't rewrite it; its working
+# folder (answer file, logs, screenshots) is fixed.
+HERE = os.path.expanduser("~/dc-build")
+LOG = os.path.join(HERE, "log", "vm152.log")
+CFG = os.path.expanduser("~/.config/proxmox-mcp/config.json")
+PASSFILE = os.path.expanduser("~/.config/dc-build/admin.pass")
+SERVER_ISO = "ISO:iso/WinServer2025-eval-26100.32230.iso"
+VIRTIO_ISO = "ISO:iso/virtio-win-0.1.285.iso"
+ANSWER_ISO = "dc152-answer.iso"            # built on sefi in the ISO dataset
+ISO_DIR_SEFI = "/pax/iso/template/iso"     # local ZFS path behind the NFS "ISO" storage
+STORAGE = "fast-local"
+
+HELP = f"""vm152 - manage the lab domain controller VM {VMID} on {NODE} (VLAN {VLAN}) only.
+
+  vm152 help                     this text
+  vm152 status                   does VM {VMID} exist, power state, key config, guest agent
+  vm152 answer-iso FILE          build the Windows answer ISO from FILE (must be
+                                   autounattend.xml in this folder; write __ADMIN_PASSWORD__
+                                   where the password goes, this tool fills it in)
+  vm152 create [--cores N] [--memory MB] [--disk GB]
+                                   create VM {VMID} (defaults 2 cores, 4096 MB, 60 GB) with the
+                                   Server ISO, virtio drivers ISO and answer ISO attached
+  vm152 start | shutdown | stop  power control (stop = hard power off)
+  vm152 exec 'POWERSHELL'        run PowerShell inside the VM via the guest agent and wait
+                                   up to 50 s; prints a PID to poll if it is still running.
+                                   Write __ADMIN_PASSWORD__ where the admin password goes
+  vm152 exec-status PID          output of an earlier exec
+  vm152 detach-media             remove the three install ISOs from the VM
+  vm152 screenshot               save the VM screen to log/screen-<time>.png (for review)
+"""
+
+
+def log(msg):
+    os.makedirs(os.path.dirname(LOG), exist_ok=True)
+    with open(LOG, "a") as f:
+        f.write(f"{datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ} {msg}\n")
+
+
+def die(msg, code=2):
+    log(f"ERROR {msg}")
+    print(f"ERROR: {msg}")
+    sys.exit(code)
+
+
+def api(method, path, data=None, ok404=False):
+    t = json.load(open(CFG))["targets"]["TheRising"]
+    a = t["auth"]
+    body = urllib.parse.urlencode(data, doseq=True).encode() if data else None
+    req = urllib.request.Request(
+        f"https://{t['host']}:{t['port']}/api2/json/nodes/{NODE}/qemu{path}", data=body, method=method,
+        headers={"Authorization": f"PVEAPIToken={a['user']}!{a['token_name']}={a['token_value']}"})
+    try:
+        r = urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=60)
+        return json.load(r).get("data")
+    except urllib.error.HTTPError as e:
+        msg = e.read().decode(errors="replace")[:300]
+        if ok404 and e.code in (404, 500) and "does not exist" in msg:
+            return None
+        die(f"Proxmox API {e.code} on {method} {path}: {msg}")
+
+
+def wait_task(upid, secs=600):
+    for _ in range(secs // 2):
+        st = api_raw_task(upid)
+        if st and st.get("status") == "stopped":
+            if st.get("exitstatus") != "OK":
+                die(f"task failed: {st.get('exitstatus')}")
+            return
+        time.sleep(2)
+    die("task timed out")
+
+
+def api_raw_task(upid):
+    t = json.load(open(CFG))["targets"]["TheRising"]
+    a = t["auth"]
+    req = urllib.request.Request(
+        f"https://{t['host']}:{t['port']}/api2/json/nodes/{NODE}/tasks/{urllib.parse.quote(upid)}/status",
+        headers={"Authorization": f"PVEAPIToken={a['user']}!{a['token_name']}={a['token_value']}"})
+    return json.load(urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=30)).get("data")
+
+
+def config():
+    return api("GET", f"/{VMID}/config", ok404=True)
+
+
+def need_vm():
+    c = config()
+    if c is None:
+        die(f"VM {VMID} does not exist yet. Run vm152 create first.")
+    return c
+
+
+def cmd_status(_):
+    c = config()
+    if c is None:
+        print(f"VM {VMID}: does not exist")
+        return
+    s = api("GET", f"/{VMID}/status/current")
+    print(f"VM {VMID} '{c.get('name')}': {s.get('status')}, {c.get('cores')} cores, {c.get('memory')} MB")
+    for k in ("net0", "scsi0", "ide0", "ide2", "ide3", "boot", "agent"):
+        if k in c:
+            print(f"  {k}: {c[k]}")
+    if s.get("status") == "running":
+        try:
+            t = json.load(open(CFG))["targets"]["TheRising"]
+            a = t["auth"]
+            req = urllib.request.Request(
+                f"https://{t['host']}:{t['port']}/api2/json/nodes/{NODE}/qemu/{VMID}/agent/ping", data=b"",
+                method="POST", headers={"Authorization": f"PVEAPIToken={a['user']}!{a['token_name']}={a['token_value']}"})
+            urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=15)
+            print("  guest agent: responding")
+        except Exception:
+            print("  guest agent: not responding (Windows still installing, or agent not installed yet)")
+
+
+def cmd_answer_iso(args):
+    if len(args) != 1:
+        die("usage: vm152 answer-iso autounattend.xml")
+    path = os.path.realpath(os.path.join(HERE, args[0]))
+    if os.path.dirname(path) != HERE or os.path.basename(path) != "autounattend.xml":
+        die("the file must be autounattend.xml in this folder")
+    text = open(path, encoding="utf-8").read()
+    try:
+        xml.dom.minidom.parseString(text.encode())
+    except Exception as e:
+        die(f"autounattend.xml is not valid XML: {e}")
+    if "__ADMIN_PASSWORD__" not in text:
+        die("autounattend.xml must contain __ADMIN_PASSWORD__ where the administrator password goes")
+    pw = open(PASSFILE).read().strip()
+    filled = text.replace("__ADMIN_PASSWORD__", pw)
+    # Build on sefi itself (local ZFS), never through an NFS client (INC-2026-001).
+    b64 = base64.b64encode(filled.encode()).decode()
+    remote = (
+        "set -e; d=$(mktemp -d); trap 'rm -rf $d' EXIT; mkdir $d/root; "
+        f"echo {b64} | base64 -d > $d/root/autounattend.xml; "
+        f"genisoimage -quiet -J -r -V ANSWER -o {ISO_DIR_SEFI}/.{ANSWER_ISO}.tmp $d/root; "
+        f"chmod 644 {ISO_DIR_SEFI}/.{ANSWER_ISO}.tmp; mv {ISO_DIR_SEFI}/.{ANSWER_ISO}.tmp {ISO_DIR_SEFI}/{ANSWER_ISO}; "
+        f"ls -la {ISO_DIR_SEFI}/{ANSWER_ISO}")
+    r = subprocess.run(["ssh", "-o", "BatchMode=yes", "sefi", "sudo bash -s"], input=remote,
+                       capture_output=True, text=True, timeout=120)
+    if r.returncode:
+        die(f"building the answer ISO failed: {r.stderr.strip()[:300]}")
+    print(f"answer ISO built: ISO:iso/{ANSWER_ISO} ({len(text)} bytes of XML, password filled in)")
+
+
+def cmd_create(args):
+    o = {"--cores": 2, "--memory": 4096, "--disk": 60}
+    it = iter(args)
+    for a in it:
+        if a not in o:
+            die(f"unknown option {a}")
+        try:
+            o[a] = int(next(it))
+        except (StopIteration, ValueError):
+            die(f"{a} needs a number")
+    if not (1 <= o["--cores"] <= 4 and 2048 <= o["--memory"] <= 6144 and 40 <= o["--disk"] <= 100):
+        die("limits: cores 1-4, memory 2048-6144 MB, disk 40-100 GB")
+    if config() is not None:
+        die(f"VM {VMID} already exists. Use vm152 status.")
+    data = {
+        "vmid": VMID, "name": "dc01", "ostype": "win11", "machine": "q35", "bios": "seabios",
+        "cpu": "x86-64-v2-AES", "cores": o["--cores"], "sockets": 1, "memory": o["--memory"],
+        "scsihw": "virtio-scsi-single", "scsi0": f"{STORAGE}:{o['--disk']},iothread=1,discard=on",
+        "ide2": f"{SERVER_ISO},media=cdrom", "ide0": f"{VIRTIO_ISO},media=cdrom",
+        "ide3": f"ISO:iso/{ANSWER_ISO},media=cdrom",
+        "net0": f"virtio,bridge=vmbr0,tag={VLAN},firewall=1", "agent": "enabled=1",
+        "boot": "order=scsi0;ide2", "tags": "lab;net-lab;windows",
+        "description": "dc01: lab AD domain controller (Phase 4). Built by the local dc-builder agent via vm152.",
+    }
+    upid = api("POST", "", data)
+    wait_task(upid)
+    print(f"VM {VMID} created ({o['--cores']} cores, {o['--memory']} MB, {o['--disk']} GB, VLAN {VLAN}). Not started.")
+
+
+def cmd_power(action):
+    need_vm()
+    path = {"start": "start", "shutdown": "shutdown", "stop": "stop"}[action]
+    upid = api("POST", f"/{VMID}/status/{path}", {"timeout": 120} if action == "shutdown" else None)
+    wait_task(upid, 180)
+    print(f"VM {VMID}: {action} OK")
+
+
+def exec_result(pid):
+    r = api("GET", f"/{VMID}/agent/exec-status?pid={int(pid)}")
+    if not r.get("exited"):
+        return None
+    out = (r.get("out-data") or "") + (("\nSTDERR: " + r["err-data"]) if r.get("err-data") else "")
+    return r.get("exitcode"), out
+
+
+def cmd_exec(args):
+    if len(args) != 1:
+        die("usage: vm152 exec 'POWERSHELL' (one quoted argument)")
+    need_vm()
+    ps = args[0]
+    if "__ADMIN_PASSWORD__" in ps:   # filled in here, never shown to the agent or logged
+        ps = ps.replace("__ADMIN_PASSWORD__", open(PASSFILE).read().strip().replace("'", "''"))
+    ps = "$ProgressPreference = 'SilentlyContinue'\n" + ps   # progress records arrive as CLIXML noise on stderr
+    enc = base64.b64encode(ps.encode("utf-16-le")).decode()
+    r = api("POST", f"/{VMID}/agent/exec", {"command": ["powershell.exe", "-NoProfile", "-NonInteractive",
+                                                         "-EncodedCommand", enc]})
+    pid = r["pid"]
+    for _ in range(25):
+        time.sleep(2)
+        res = exec_result(pid)
+        if res:
+            code, out = res
+            print(out.rstrip()[-6000:] or "(no output)")
+            print(f"[exit code {code}]")
+            return
+    print(f"still running: poll with vm152 exec-status {pid}")
+
+
+def cmd_exec_status(args):
+    if len(args) != 1 or not args[0].isdigit():
+        die("usage: vm152 exec-status PID")
+    res = exec_result(args[0])
+    if not res:
+        print(f"PID {args[0]} still running")
+        return
+    code, out = res
+    print(out.rstrip()[-6000:] or "(no output)")
+    print(f"[exit code {code}]")
+
+
+def cmd_detach(_):
+    need_vm()
+    api("PUT", f"/{VMID}/config", {"delete": "ide0,ide2,ide3", "boot": "order=scsi0"})
+    print("install media detached (ide0, ide2, ide3)")
+
+
+def cmd_screenshot(_):
+    need_vm()
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    remote = (f"set -e; f=/tmp/vm{VMID}-screen.ppm; echo 'screendump '$f | qm monitor {VMID} >/dev/null; "
+              "python3 - $f <<'PY'\n"
+              "import sys,zlib,struct,base64\n"
+              "d=open(sys.argv[1],'rb').read()\n"
+              "parts=d.split(b'\\n',3)\n"
+              "w,h=map(int,parts[1].split()); px=parts[3]\n"
+              "raw=b''.join(b'\\x00'+px[y*w*3:(y+1)*w*3] for y in range(h))\n"
+              "c=lambda t,b:struct.pack('>I',len(b))+t+b+struct.pack('>I',zlib.crc32(t+b)&0xffffffff)\n"
+              "png=b'\\x89PNG\\r\\n\\x1a\\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+c(b'IDAT',zlib.compress(raw,6))+c(b'IEND',b'')\n"
+              "sys.stdout.write(base64.b64encode(png).decode())\n"
+              "PY\n"
+              "rm -f $f")
+    r = subprocess.run(["ssh", "-o", "BatchMode=yes", NODE, "sudo bash -s"], input=remote,
+                       capture_output=True, text=True, timeout=60)
+    if r.returncode:
+        die(f"screenshot failed: {r.stderr.strip()[:300]}")
+    out = os.path.join(HERE, "log", f"screen-{ts}.png")
+    open(out, "wb").write(base64.b64decode(r.stdout))
+    print(f"saved {os.path.relpath(out, HERE)}")
+
+
+def main():
+    args = sys.argv[1:]
+    cmd = args[0] if args else "help"
+    log(f"CALL {shlex.join(args) if cmd != 'exec' else 'exec <' + str(len(args[1]) if len(args) > 1 else 0) + ' chars>'}")
+    if cmd == "exec" and len(args) > 1:
+        log("  PS> " + args[1].replace("\n", " ")[:500])
+    table = {
+        "help": lambda a: print(HELP), "status": cmd_status, "answer-iso": cmd_answer_iso,
+        "create": cmd_create, "exec": cmd_exec, "exec-status": cmd_exec_status,
+        "detach-media": cmd_detach, "screenshot": cmd_screenshot,
+        "start": lambda a: cmd_power("start"), "shutdown": lambda a: cmd_power("shutdown"),
+        "stop": lambda a: cmd_power("stop"),
+    }
+    if cmd not in table:
+        die(f"unknown command '{cmd}'. Run vm152 help")
+    table[cmd](args[1:])
+
+
+if __name__ == "__main__":
+    main()

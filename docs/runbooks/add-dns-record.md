@@ -17,8 +17,10 @@
 T=$(cat ~/.config/technitium/dns1.token)
 curl -s http://10.12.5.53:5380/api/zones/records/add \
   --data-urlencode "token=$T" -d zone=demarzo.lab -d domain=<name>.demarzo.lab \
-  -d type=A -d ttl=3600 -d ipAddress=<ip> -d ptr=true    # ptr=true also writes the PTR if the reverse zone exists
+  -d type=A -d ttl=3600 -d ipAddress=<ip> -d ptr=true    # ptr=true also writes the PTR
 ```
+⚠️ With `ptr=true` and **no** reverse zone for that VLAN (Security, DMZ), Technitium rejects the whole request ("No reverse zone available to add PTR record"), and the A record isn't added either. Leave out `ptr=true` there.
+
 The `ops` API user can add and change records, but not zone options ([dns.md](../architecture/dns.md#api-access)).
 
 ## Check that it worked
