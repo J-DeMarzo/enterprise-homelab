@@ -36,7 +36,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 
 | Group | Type | Members | Used by |
 |---|---|---|---|
-| `Admin Terminals` | IP | Admin desktop (reserved IP) | Rule 1 |
+| `Admin Terminals` | IP | Admin desktop and laptop (both reserved). The laptop was added on 2026-10-03 | Rule 1 |
 | `DNS` | IP-Port | 10.12.5.53, 10.12.5.54 · port 53 | Rule 5 |
 | `NFS` | IP-Port | 10.12.5.14 · port 2049 (NFSv4) | Rule 6 |
 | `Proxmox Clients` | IP | 10.12.30.101 (`bots`, formerly `claude`), 10.12.30.100 (`homepage`). Both reserved | Rule 7 |
@@ -78,7 +78,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 | T22 | kali → Omada controller (10.12.5.2) | 443 | ❌ | n/a | BLOCKED | ✅ |
 | T23 | claude → gateway UI (10.12.30.1, 10.12.5.1) | 443 | ❌ | n/a | BLOCKED | ✅ |
 | T24 | kali and claude → internet and DNS, after rule 11 (regression check for the TCP-only choice) | 443, 53 | ✅ | OPEN | OPEN | ✅ |
-| T25 | Internal devices that **aren't** the admin desktop (owner's phone and laptop) → Splunk web UI | 8000 | ❌ | n/a | BLOCKED (ufw) | ✅ |
+| T25 | Internal devices that **aren't** the admin desktop (owner's phone and laptop) → Splunk web UI. Still true for the laptop after it joined `Admin Terminals`, because splunk's ufw allows only the desktop's IP | 8000 | ❌ | n/a | BLOCKED (ufw) | ✅ |
 | T26 | ops (Mgmt) → Splunk web UI | 8000 | ✅ | n/a | OPEN (redirects to login) | ✅ |
 | T27 | ops (Mgmt) → Splunk forwarding | 9997 | ✅ | n/a | OPEN | ✅ |
 | T28 | claude (Servers) → Splunk web UI | 8000 | ❌ | n/a | BLOCKED (ufw: Servers isn't an admin zone) | ✅ |

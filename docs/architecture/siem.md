@@ -120,7 +120,7 @@ Splunk Free has no authentication, so network controls are the only protection. 
 
 | Port | Allowed from | Enforced by |
 |---|---|---|
-| 8000 (web UI) | Management, Admin Terminals | Host firewall (ufw) on `splunk`. The gateway ACL alone would allow all of Internal (rule 3) |
+| 8000 (web UI) | Management, admin desktop | Host firewall (ufw) on `splunk`. The gateway ACL alone would allow all of Internal (rule 3) |
 | 9997 (forwarders) | Management, Servers, Security, DMZ | Gateway ACL rules 2 and 8, plus ufw |
 | 514 (syslog) | Gateway, Omada controller, Proxmox hosts | ufw |
 | 22 (SSH) | Management, admin desktop. Servers lost SSH on 2026-10-01 (T37) | ufw |
