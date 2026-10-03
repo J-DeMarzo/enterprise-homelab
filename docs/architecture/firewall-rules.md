@@ -36,7 +36,7 @@ Hosts listed by address have a static IP or a DHCP reservation, so their permiss
 
 | Group | Type | Members | Used by |
 |---|---|---|---|
-| `Admin Terminals` | IP | Admin desktop and laptop (both reserved). The laptop was added on 2026-10-03 | Rule 1 |
+| `Admin Terminals` | IP | 10.12.10.10 (admin desktop), 10.12.10.11 (laptop, added 2026-10-03). Both reserved | Rule 1 |
 | `DNS` | IP-Port | 10.12.5.53, 10.12.5.54 · port 53 | Rule 5 |
 | `NFS` | IP-Port | 10.12.5.14 · port 2049 (NFSv4) | Rule 6 |
 | `Proxmox Clients` | IP | 10.12.30.101 (`bots`, formerly `claude`), 10.12.30.100 (`homepage`). Both reserved | Rule 7 |

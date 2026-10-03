@@ -30,6 +30,8 @@ Proxmox guests use VLANs 5 (untagged, native), 30 (`tag=30`), and 40 (`tag=40`).
 | `10.12.5.200` | Omada access point (syslog sender) |
 | `10.12.5.11–.14` | Proxmox nodes (darrow `.11`, sevro `.12`, ragnar `.13`, sefi `.14`) |
 | `10.12.5.53–.54` | DNS (dns1 `.53`, dns2 `.54`), named after port 53 |
+| `10.12.10.10` | admin desktop (DHCP reservation, `Admin Terminals`) |
+| `10.12.10.11` | laptop (DHCP reservation, `Admin Terminals`) |
 | `10.12.30.20` | splunk (SIEM, static) |
 | `10.12.30.30` | fantasy (fantasy-app dev/runtime, LXC 201, static) |
 | `10.12.30.40` | llm (Ollama, LXC 100, static) |
