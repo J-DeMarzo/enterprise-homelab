@@ -48,8 +48,8 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 | Item | Placement | Evidence to finish it |
 |---|---|---|
 | [x] **Windows Server DC** (evaluation), small AD domain: `dc01` (VM 152, darrow), `ad.demarzo.lab` ([runbook](runbooks/build-domain-controller.md)) | VLAN 40 · 4 GiB | ✅ Domain up (dcdiag passes), and the DC forwards to dns1/dns2: its lookups show up in Splunk at dns1 from the Security zone. The evaluation expires 2027-03-30 |
-| [ ] **Two Windows 11 clients** (Enterprise evaluation), domain-joined: `ws01` (VM 251, sevro) and `ws02` (VM 350, ragnar), spread off darrow ([runbook](runbooks/build-windows-client.md)) | VLAN 40 · 4 GiB each | Domain logon events in Splunk |
-| [ ] **Sysmon** (community config) + Universal Forwarder on both | – | Sysmon process/network/DNS events in Splunk, within the ingest budget |
+| [x] **Two Windows 11 clients** (Enterprise evaluation), domain-joined: `ws01` (VM 251, sevro) and `ws02` (VM 350, ragnar), spread off darrow ([runbook](runbooks/build-windows-client.md)) | VLAN 40 · 4 GiB each | ✅ dc01's Kerberos TGTs (4768), service tickets (4769) and logons (4624) for both clients are in Splunk from the moment of the join, with source IP and zone. They're machine-account logons: domain user accounts come before Phase 5 |
+| [x] **Sysmon** ([sysmon-modular](https://github.com/olafhartong/sysmon-modular), pinned) + Universal Forwarder on dc01, ws01, ws02 ([installer](../splunk/forwarder/install-uf-windows.ps1), [notes](architecture/siem.md#windows-specifics)) | – | ✅ A test DNS lookup, process and network connection from each host found in Splunk with fields and zones. About 27 MB/day for all three at idle, after fixing a Sysmon bug that dropped every DNS event and excluding the forwarder's own noise (first hour: ~670 MB/day of install churn) |
 | [ ] Golden templates for both, for rebuilding when the evaluations expire | VM-Templates (NFS) | Runbook plus one timed rebuild |
 
 ## Phase 5: SOC workflow evidence

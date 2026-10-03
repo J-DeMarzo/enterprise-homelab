@@ -69,6 +69,8 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 | Caddy access logs (demarzo.dev) | dmz-edge (UF, `/var/log/caddy/`) | `caddy:access` | `web` | ✅ 2026-10-01. JSON. `src_ip` = the real visitor (`request.client_ip`, from `Cf-Connecting-Ip`), `http_method`, `uri`, `status`, `site`, `http_user_agent`. Verified with a request through Cloudflare from the home IP |
 | System journal | ops, dns1, dns2 (UF); dmz-edge, homepage, bots, fantasy, darrow, sevro, ragnar, sefi (UF) | `journald` | `linux` | ✅ 2026-09-30 / 2026-10-01 |
 | Proxmox API access log | darrow, sevro, ragnar, sefi (UF, `/var/log/pveproxy/access.log`) | `pve:access` | `linux` | ✅ 2026-10-01. Fields: `src_ip`, `user` (user or API token), `method`, `uri`, `status`, `src_zone`. Every call by each [ADR 0009](../adr/0009-least-privilege-proxmox-api-identities.md) identity is auditable |
+| Windows event logs | dc01, ws01, ws02 (UF, [installer](../../splunk/forwarder/install-uf-windows.ps1)) | `XmlWinEventLog:<channel>` | `wineventlog` | ✅ 2026-10-03. Security, System, Application, PowerShell/Operational, Defender/Operational. Fields: `EventCode`, `Computer`, `Channel`, every EventData field by name (`TargetUserName`, `IpAddress`, `LogonType`, …), `src_ip`, `src_zone`. The clients' Kerberos TGTs (4768), service tickets (4769) and logons (4624) at dc01 are searchable from the moment they joined |
+| Sysmon | dc01, ws01, ws02 (UF) | `XmlWinEventLog:Microsoft-Windows-Sysmon/Operational` | `sysmon` | ✅ 2026-10-03. sysmon-modular default config. Process (1), network (3), image load (7), file (11), registry (12/13), DNS (22) and more. Fields as above plus `src_ip`/`dest_ip` with zones on network events |
 
 **Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset (fixed at the source on 2026-09-30 with NTP and a DST-aware time zone). rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
 
@@ -79,6 +81,14 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 **ACL rule IDs:** the gateway logs a numeric rule ID (`DESC=`), not the rule name. Observed so far: `1714321509` = DENY Inter-LAN (rule 12), `1421851197` = DENY Gateway UI (rule 11). The [`omada_acl_rules`](../../splunk/apps/homelab_base/lookups/omada_acl_rules.csv) lookup turns them into a `rule` field automatically. Add a row whenever a new ID appears (the dashboard shows it as "unmapped rule id").
 
 **Controller audit events:** the controller also logs its own configuration changes as JSON (`"operation":"Gateway ACL … deleted successfully …"`). That makes ACL and group edits searchable, including the removal of the undocumented rules found in T36.
+
+### Windows specifics
+- **Extractions without the Windows add-on:** the Splunk Add-on for Microsoft Windows needs a Splunkbase login, so `homelab_base` does what it does for XML events: the System header fields plus every `<Data Name='x'>v</Data>` pair as field `x` (`[source::WinEventLog:...]` in props.conf). The pattern must use `...`, not `*`: `*` stops at the `/` in channel names like `Microsoft-Windows-Sysmon/Operational`, and the first deploy matched nothing for Sysmon.
+- **Least privilege:** the UF runs as its virtual account `NT SERVICE\SplunkForwarder` (the 10.x default), not SYSTEM. The installer grants it what it needs to read Security and the rest, but **Sysmon's channel admits only SYSTEM, Administrators and Event Log Readers** (`errorCode=5`). The installer adds a read entry for the service SID to that one channel's ACL, which also works on the DC, where there are no local groups.
+- **Sysmon 15.22 drops all DNS events with more than one `DnsQuery` rule group.** sysmon-modular ships twelve. Each works alone, any two together log nothing (bisected on ws01, 2026-10-03; the Windows DNS client's own events fired the whole time). The installer merges them into one group in a derived `sysmonconfig-lab.xml`. The exclusions still apply (`adservice.google.com` stays out), and the verified upstream file is left as downloaded.
+- **Forwarder self-noise:** the UF relaunches its idle helper inputs (regmon, netmon, admon, …) every minute, and Sysmon logged each launch's image loads, ~25–30 MB/day per host. Image loads by `SplunkUniversalForwarder\bin\` and file creates in its `var\` are excluded, as sysmon-modular already does for other security agents.
+- **Security log filter:** 4662 (directory object access) and 5156–5158 (Windows Filtering Platform connections) are blacklisted at the forwarder. They're the classic budget killers, and Sysmon covers connections better.
+- **Audit policy is still the Windows default.** Process creation with command lines comes from Sysmon (event 1), not Security 4688. Advanced audit policy and PowerShell script block logging by GPO are later work.
 
 ## Dashboards
 In the **Homelab SOC** app (`homelab_base`), Dashboard Studio, defined in [`default/data/ui/views/`](../../splunk/apps/homelab_base/default/data/ui/views/):
@@ -134,5 +144,5 @@ Splunk Free allows 500 MB/day. Estimates, to be replaced with measured values af
 | Technitium (filtered) | 20–80 |
 | Linux + Proxmox | 20–50 |
 | dmz-edge | 5–50 |
-| Windows + Sysmon (Phase 4) | 100–250 |
+| Windows + Sysmon (Phase 4) | 100–250 (measured **~27** for dc01 + 2 clients at idle, 2026-10-03; attacks and use add to it) |
 | **Total** | **~155–480** |

@@ -67,7 +67,7 @@ Run [`splunk/server/ufw-rules.sh`](../../splunk/server/ufw-rules.sh) as root. De
 Splunk 10 also listens on **0.0.0.0:5432** (bundled PostgreSQL) and 8089. Both stay closed to the network.
 
 ## 6b. Universal Forwarders
-Installer: [`splunk/forwarder/install-uf.sh`](../../splunk/forwarder/install-uf.sh). It downloads UF 10.4.4, verifies the SHA-512, and installs it with a random root-only admin credential. Roles: `linux` (journald → `linux`), `technitium` (query logs → `dns`), `pve` (Proxmox API access log → `linux`, read access by ACL), `caddy` (Caddy JSON access logs → `web`).
+Installer: [`splunk/forwarder/install-uf.sh`](../../splunk/forwarder/install-uf.sh). It downloads UF 10.4.4, verifies the SHA-512, and installs it with a random root-only admin credential. Roles: `linux` (journald → `linux`), `technitium` (query logs → `dns`), `pve` (Proxmox API access log → `linux`, read access by ACL), `caddy` (Caddy JSON access logs → `web`). Windows hosts have their own installer (below).
 
 From `ops`, for any host it can SSH to (all of them), copy the repo's script over. It's staged to a file first, because dpkg/apt would read the rest of a script piped into `bash -s`:
 ```bash
@@ -81,6 +81,13 @@ curl -fsSL https://raw.githubusercontent.com/J-DeMarzo/enterprise-homelab/<commi
 pct exec <vmid> -- bash -c "curl -fsSL <same URL> | bash -s -- linux technitium"
 ```
 > ⚠️ **Lessons from the first install (ops):** (1) never run the `splunk` binary as root before `enable boot-start`, because it drops to `splunkfwd` and trips over root-owned dirs; (2) a manual `splunk start` + `splunk stop` hung with the journald input active, so let `enable boot-start` and systemd handle it; (3) the QEMU guest agent kills commands after 60 s, so run long installs over SSH or `pct exec`, not the guest agent.
+
+**Windows (dc01, ws01, ws02):** [`splunk/forwarder/install-uf-windows.ps1`](../../splunk/forwarder/install-uf-windows.ps1) installs **Sysmon** with the [sysmon-modular](https://github.com/olafhartong/sysmon-modular) default config (release `configs-082cba578667`, SHA-256 pinned; Sysmon itself is checked by its Microsoft signature) and the **UF 10.4.4 MSI** (SHA-512 and Splunk signature checked, random admin password). Inputs: Security, System, Application, PowerShell/Operational and Defender/Operational → `wineventlog`, Sysmon → `sysmon`, all `renderXml = true`. It runs through the guest agent from `ops`, because Windows has no SSH and the Security VLAN can't reach Management:
+```bash
+scripts/win-client ws01 exec "$(cat splunk/forwarder/install-uf-windows.ps1)"   # then exec-status <pid>
+vm152 exec "$(cat splunk/forwarder/install-uf-windows.ps1)"                     # dc01
+```
+It's idempotent: a rerun reapplies the Sysmon config and rewrites the inputs. Three fixes are built in ([siem.md](../architecture/siem.md#windows-specifics)): read access on Sysmon's channel for the UF's service SID, the DNS rule groups merged into one, and the forwarder's own image loads excluded.
 
 Verify: `| tstats count where index=linux by host`, plus a `logger` test message showing up within seconds. From `ops`: `scripts/splunk-search.sh '<spl>' [earliest]` runs a search over SSH and prints CSV (8089 stays closed to the network).
 

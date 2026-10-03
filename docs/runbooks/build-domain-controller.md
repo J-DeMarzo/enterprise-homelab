@@ -51,8 +51,8 @@ Everything runs from `ops` through [`scripts/vm152`](../../scripts/vm152), a wra
 | Evaluation | `ServerStandardEval`, Licensed, expires 2027-03-30, 1 rearm left |
 
 ## Not done yet (roadmap Phase 4)
-- Sysmon + Universal Forwarder (`wineventlog`, `sysmon` indexes)
-- Windows 11 clients joined to the domain: `ws01` and `ws02` ([runbook](build-windows-client.md))
+- ~~Sysmon + Universal Forwarder~~ done 2026-10-03 ([installer](../../splunk/forwarder/install-uf-windows.ps1)): Security, System, Application, PowerShell, Defender → `wineventlog`, Sysmon → `sysmon`
+- ~~Windows 11 clients joined to the domain~~ done 2026-10-03: `ws01` and `ws02` ([runbook](build-windows-client.md))
 - Golden template for rebuilds
 
 Lab hosts outside the domain can't resolve `ad.demarzo.lab` yet. Domain members use the DC as their DNS server. If lab-wide resolution is needed, add a conditional forwarder on Technitium.

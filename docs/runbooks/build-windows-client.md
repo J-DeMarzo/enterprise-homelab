@@ -59,6 +59,6 @@ Run 2026-10-03 on both clients:
 | Cleanup | Install media detached, both answer ISOs deleted on sefi. A cold boot from disk keeps the secure channel |
 
 ## Not done yet (roadmap Phase 4)
-- Sysmon + Universal Forwarder on dc01 and both clients, then a domain user's logon visible in Splunk (the roadmap evidence for this item)
-- Domain users for the clients, and the GPO baseline (consumer features, widgets, Copilot off) linked to `OU=Workstations`
+- Domain user accounts, so attacks run as people rather than machine accounts. Sysmon and the forwarders are on all three Windows hosts since 2026-10-03 ([installer](../../splunk/forwarder/install-uf-windows.ps1), [notes](../architecture/siem.md#windows-specifics))
+- The GPO baseline (consumer features, widgets, Copilot off) linked to `OU=Workstations`
 - Golden template for rebuilds

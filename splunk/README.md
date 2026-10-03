@@ -18,6 +18,8 @@ build-savedsearches.py    detections/*.spl (+ baselines/) → savedsearches.conf
 forwarder/install-uf.sh   Universal Forwarder installer: checksum-verified package, localhost-only mgmt port,
                           roles `linux` (journald → linux), `technitium` (query logs → dns),
                           `pve` (Proxmox API access log → linux) and `caddy` (Caddy JSON → web)
+forwarder/install-uf-windows.ps1  Windows: Sysmon (sysmon-modular, pinned) + UF MSI, event logs → wineventlog,
+                          Sysmon → sysmon (XML). Run through the guest agent (win-client / vm152 exec)
 server/                   rsyslog intake, ufw host firewall, raw-buffer cleanup cron for the Splunk VM,
                           deploy-app.sh (push homelab_base to the indexer from ops)
 ```
