@@ -1,0 +1,317 @@
+#!/usr/bin/env python3
+"""win-client - build and manage the lab's Windows 11 domain clients (ws01, ws02).
+
+Modeled on scripts/vm152 (the DC's wrapper): every action is hard-wired to the
+clients in CLIENTS below, on the Security VLAN 40. There is no delete, no other
+VMID, no other VLAN, and no free-form API call. Secrets (the Proxmox token, the
+passwords) are read here and never printed. Every call is logged to log/win-client.log.
+
+Run "win-client help" for the commands.
+"""
+import base64, json, os, re, shlex, ssl, subprocess, sys, time
+import urllib.error, urllib.parse, urllib.request
+import xml.dom.minidom
+from datetime import datetime, timezone
+
+# One client per non-darrow node, so the lab's load is spread across the cluster.
+CLIENTS = {"ws01": (251, "sevro"), "ws02": (350, "ragnar")}
+VLAN = 40
+HERE = os.path.expanduser("~/dc-build")
+LOG = os.path.join(HERE, "log", "win-client.log")
+CFG = os.path.expanduser("~/.config/proxmox-mcp/config.json")
+LOCAL_PASSFILE = os.path.expanduser("~/.config/dc-build/client-admin.pass")   # labadmin on the clients
+DOMAIN_PASSFILE = os.path.expanduser("~/.config/dc-build/admin.pass")         # LAB\Administrator
+WIN_ISO = "ISO:iso/Win11Ent-eval-26300.9457.iso"
+VIRTIO_ISO = "ISO:iso/virtio-win-0.1.285.iso"
+ISO_DIR_SEFI = "/pax/iso/template/iso"     # local ZFS path behind the NFS "ISO" storage
+STORAGE = "fast-local"
+
+HELP = f"""win-client - manage the lab's Windows 11 clients only: {', '.join(f'{n} (VM {v}, {h})' for n, (v, h) in CLIENTS.items())}, VLAN {VLAN}.
+
+  win-client NAME status             does the VM exist, power state, key config, guest agent
+  win-client NAME answer-iso         build NAME's answer ISO from autounattend-win11-client.xml in
+                                       ~/dc-build (fills in __COMPUTER_NAME__ and __ADMIN_PASSWORD__)
+  win-client NAME create [--cores N] [--memory MB] [--disk GB]
+                                     create the VM (defaults 2 cores, 4096 MB, 64 GB): OVMF + Secure
+                                       Boot keys, vTPM 2.0, Windows, virtio and answer ISOs attached
+  win-client NAME start [--boot-cd]  power on; --boot-cd also presses Enter through the UEFI
+                                       "Press any key to boot from CD" prompt (first install only)
+  win-client NAME shutdown | stop    power control (stop = hard power off)
+  win-client NAME exec 'POWERSHELL'  run PowerShell via the guest agent, wait up to 50 s. Write
+                                       __ADMIN_PASSWORD__ (local labadmin) or __DOMAIN_PASSWORD__
+                                       (LAB\\Administrator) where a password goes
+  win-client NAME exec-status PID    output of an earlier exec
+  win-client NAME detach-media       remove the three install ISOs and delete NAME's answer ISO on sefi
+  win-client NAME screenshot         save the VM screen to log/NAME-screen-<time>.png
+"""
+
+NAME = VMID = NODE = None
+
+
+def log(msg):
+    os.makedirs(os.path.dirname(LOG), exist_ok=True)
+    with open(LOG, "a") as f:
+        f.write(f"{datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ} {msg}\n")
+
+
+def die(msg, code=2):
+    log(f"ERROR {msg}")
+    print(f"ERROR: {msg}")
+    sys.exit(code)
+
+
+def request(method, path, data=None, timeout=60):
+    t = json.load(open(CFG))["targets"]["TheRising"]
+    a = t["auth"]
+    body = urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None
+    req = urllib.request.Request(
+        f"https://{t['host']}:{t['port']}/api2/json/nodes/{NODE}{path}", data=body, method=method,
+        headers={"Authorization": f"PVEAPIToken={a['user']}!{a['token_name']}={a['token_value']}"})
+    return json.load(urllib.request.urlopen(req, context=ssl._create_unverified_context(), timeout=timeout)).get("data")
+
+
+def api(method, path, data=None, ok404=False):
+    try:
+        return request(method, f"/qemu{path}", data)
+    except urllib.error.HTTPError as e:
+        msg = e.read().decode(errors="replace")[:300]
+        if ok404 and e.code in (404, 500) and "does not exist" in msg:
+            return None
+        die(f"Proxmox API {e.code} on {method} {path}: {msg}")
+
+
+def wait_task(upid, secs=600):
+    for _ in range(secs // 2):
+        st = request("GET", f"/tasks/{urllib.parse.quote(upid)}/status", timeout=30)
+        if st and st.get("status") == "stopped":
+            if st.get("exitstatus") != "OK":
+                die(f"task failed: {st.get('exitstatus')}")
+            return
+        time.sleep(2)
+    die("task timed out")
+
+
+def node_root(script, timeout=60):
+    """Run a bash script as root on a host (ops' demarzo key + sudo)."""
+    return subprocess.run(["ssh", "-o", "BatchMode=yes", NODE, "sudo bash -s"], input=script,
+                          capture_output=True, text=True, timeout=timeout)
+
+
+def answer_iso():
+    return f"{NAME}-answer.iso"
+
+
+def config():
+    return api("GET", f"/{VMID}/config", ok404=True)
+
+
+def need_vm():
+    c = config()
+    if c is None:
+        die(f"VM {VMID} does not exist yet. Run win-client {NAME} create first.")
+    return c
+
+
+def cmd_status(_):
+    c = config()
+    if c is None:
+        print(f"{NAME} (VM {VMID} on {NODE}): does not exist")
+        return
+    s = api("GET", f"/{VMID}/status/current")
+    print(f"{NAME} (VM {VMID} on {NODE}): {s.get('status')}, {c.get('cores')} cores, {c.get('memory')} MB")
+    for k in ("bios", "efidisk0", "tpmstate0", "net0", "scsi0", "ide0", "ide2", "ide3", "boot", "agent"):
+        if k in c:
+            print(f"  {k}: {c[k]}")
+    if s.get("status") == "running":
+        try:
+            request("POST", f"/qemu/{VMID}/agent/ping", {}, timeout=15)
+            print("  guest agent: responding")
+        except Exception:
+            print("  guest agent: not responding (Windows still installing, or agent not installed yet)")
+
+
+def cmd_answer_iso(args):
+    if args:
+        die(f"usage: win-client {NAME} answer-iso")
+    path = os.path.join(HERE, "autounattend-win11-client.xml")
+    text = open(path, encoding="utf-8").read()
+    try:
+        xml.dom.minidom.parseString(text.encode())
+    except Exception as e:
+        die(f"{os.path.basename(path)} is not valid XML: {e}")
+    for ph in ("__ADMIN_PASSWORD__", "__COMPUTER_NAME__"):
+        if ph not in text:
+            die(f"the answer file must contain {ph}")
+    filled = text.replace("__COMPUTER_NAME__", NAME.upper()).replace(
+        "__ADMIN_PASSWORD__", open(LOCAL_PASSFILE).read().strip())
+    # Build on sefi itself (local ZFS), never through an NFS client (INC-2026-001).
+    b64 = base64.b64encode(filled.encode()).decode()
+    iso = answer_iso()
+    remote = (
+        "set -e; d=$(mktemp -d); trap 'rm -rf $d' EXIT; mkdir $d/root; "
+        f"echo {b64} | base64 -d > $d/root/autounattend.xml; "
+        f"genisoimage -quiet -J -r -V ANSWER -o {ISO_DIR_SEFI}/.{iso}.tmp $d/root; "
+        f"chmod 644 {ISO_DIR_SEFI}/.{iso}.tmp; mv {ISO_DIR_SEFI}/.{iso}.tmp {ISO_DIR_SEFI}/{iso}; "
+        f"ls -la {ISO_DIR_SEFI}/{iso}")
+    r = subprocess.run(["ssh", "-o", "BatchMode=yes", "sefi", "sudo bash -s"], input=remote,
+                       capture_output=True, text=True, timeout=120)
+    if r.returncode:
+        die(f"building the answer ISO failed: {r.stderr.strip()[:300]}")
+    print(f"answer ISO built: ISO:iso/{iso} (computer name {NAME.upper()}, password filled in)")
+
+
+def cmd_create(args):
+    o = {"--cores": 2, "--memory": 4096, "--disk": 64}
+    it = iter(args)
+    for a in it:
+        if a not in o:
+            die(f"unknown option {a}")
+        try:
+            o[a] = int(next(it))
+        except (StopIteration, ValueError):
+            die(f"{a} needs a number")
+    if not (1 <= o["--cores"] <= 4 and 4096 <= o["--memory"] <= 8192 and 64 <= o["--disk"] <= 128):
+        die("limits: cores 1-4, memory 4096-8192 MB, disk 64-128 GB (Windows 11 minimums)")
+    if config() is not None:
+        die(f"VM {VMID} already exists. Use win-client {NAME} status.")
+    data = {
+        "vmid": VMID, "name": NAME, "ostype": "win11", "machine": "q35", "bios": "ovmf",
+        "efidisk0": f"{STORAGE}:1,efitype=4m,pre-enrolled-keys=1",
+        "tpmstate0": f"{STORAGE}:1,version=v2.0",
+        "cpu": "x86-64-v2-AES", "cores": o["--cores"], "sockets": 1, "memory": o["--memory"],
+        "scsihw": "virtio-scsi-single", "scsi0": f"{STORAGE}:{o['--disk']},iothread=1,discard=on",
+        "ide2": f"{WIN_ISO},media=cdrom", "ide0": f"{VIRTIO_ISO},media=cdrom",
+        "ide3": f"ISO:iso/{answer_iso()},media=cdrom",
+        "net0": f"virtio,bridge=vmbr0,tag={VLAN},firewall=1", "agent": "enabled=1",
+        "boot": "order=scsi0;ide2", "tags": "lab;net-lab",
+        "description": f"{NAME}: lab Windows 11 domain client (Phase 4). Built via scripts/win-client.",
+    }
+    upid = api("POST", "", data)
+    wait_task(upid)
+    print(f"{NAME} (VM {VMID} on {NODE}) created ({o['--cores']} cores, {o['--memory']} MB, "
+          f"{o['--disk']} GB, VLAN {VLAN}). Not started.")
+
+
+def cmd_power(action, args):
+    need_vm()
+    upid = api("POST", f"/{VMID}/status/{action}", {"timeout": 120} if action == "shutdown" else None)
+    wait_task(upid, 180)
+    print(f"{NAME}: {action} OK")
+    if action == "start" and "--boot-cd" in args:
+        # OVMF shows "Press any key to boot from CD or DVD" for a few seconds when the disk is empty.
+        r = node_root(f"for i in $(seq 20); do qm sendkey {VMID} ret; sleep 1; done", timeout=60)
+        if r.returncode:
+            die(f"sendkey failed: {r.stderr.strip()[:300]}")
+        print(f"{NAME}: pressed Enter for 20 s to boot the installer")
+
+
+def fill_secrets(ps):
+    if "__ADMIN_PASSWORD__" in ps:
+        ps = ps.replace("__ADMIN_PASSWORD__", open(LOCAL_PASSFILE).read().strip().replace("'", "''"))
+    if "__DOMAIN_PASSWORD__" in ps:
+        ps = ps.replace("__DOMAIN_PASSWORD__", open(DOMAIN_PASSFILE).read().strip().replace("'", "''"))
+    return ps
+
+
+def exec_result(pid):
+    r = api("GET", f"/{VMID}/agent/exec-status?pid={int(pid)}")
+    if not r.get("exited"):
+        return None
+    out = (r.get("out-data") or "") + (("\nSTDERR: " + r["err-data"]) if r.get("err-data") else "")
+    return r.get("exitcode"), out
+
+
+def cmd_exec(args):
+    if len(args) != 1:
+        die(f"usage: win-client {NAME} exec 'POWERSHELL' (one quoted argument)")
+    need_vm()
+    ps = "$ProgressPreference = 'SilentlyContinue'\n" + fill_secrets(args[0])
+    enc = base64.b64encode(ps.encode("utf-16-le")).decode()
+    r = api("POST", f"/{VMID}/agent/exec", {"command": ["powershell.exe", "-NoProfile", "-NonInteractive",
+                                                         "-EncodedCommand", enc]})
+    pid = r["pid"]
+    for _ in range(25):
+        time.sleep(2)
+        res = exec_result(pid)
+        if res:
+            code, out = res
+            print(out.rstrip()[-6000:] or "(no output)")
+            print(f"[exit code {code}]")
+            return
+    print(f"still running: poll with win-client {NAME} exec-status {pid}")
+
+
+def cmd_exec_status(args):
+    if len(args) != 1 or not args[0].isdigit():
+        die(f"usage: win-client {NAME} exec-status PID")
+    res = exec_result(args[0])
+    if not res:
+        print(f"PID {args[0]} still running")
+        return
+    code, out = res
+    print(out.rstrip()[-6000:] or "(no output)")
+    print(f"[exit code {code}]")
+
+
+def cmd_detach(_):
+    need_vm()
+    api("PUT", f"/{VMID}/config", {"delete": "ide0,ide2,ide3", "boot": "order=scsi0"})
+    print("install media detached (ide0, ide2, ide3)")
+    # The answer ISO holds labadmin's password in plain text. Delete it on sefi, not via NFS.
+    r = subprocess.run(["ssh", "-o", "BatchMode=yes", "sefi", "sudo bash -s"],
+                       input=f"rm -fv {ISO_DIR_SEFI}/{answer_iso()}", capture_output=True, text=True, timeout=60)
+    print(r.stdout.strip() or f"{answer_iso()} was already gone")
+
+
+def cmd_screenshot(_):
+    need_vm()
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    remote = (f"set -e; f=/tmp/vm{VMID}-screen.ppm; echo 'screendump '$f | qm monitor {VMID} >/dev/null; "
+              "python3 - $f <<'PY'\n"
+              "import sys,zlib,struct,base64\n"
+              "d=open(sys.argv[1],'rb').read()\n"
+              "parts=d.split(b'\\n',3)\n"
+              "w,h=map(int,parts[1].split()); px=parts[3]\n"
+              "raw=b''.join(b'\\x00'+px[y*w*3:(y+1)*w*3] for y in range(h))\n"
+              "c=lambda t,b:struct.pack('>I',len(b))+t+b+struct.pack('>I',zlib.crc32(t+b)&0xffffffff)\n"
+              "png=b'\\x89PNG\\r\\n\\x1a\\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+c(b'IDAT',zlib.compress(raw,6))+c(b'IEND',b'')\n"
+              "sys.stdout.write(base64.b64encode(png).decode())\n"
+              "PY\n"
+              "rm -f $f")
+    r = node_root(remote)
+    if r.returncode:
+        die(f"screenshot failed: {r.stderr.strip()[:300]}")
+    out = os.path.join(HERE, "log", f"{NAME}-screen-{ts}.png")
+    open(out, "wb").write(base64.b64decode(r.stdout))
+    print(f"saved {out}")
+
+
+def main():
+    global NAME, VMID, NODE
+    args = sys.argv[1:]
+    if not args or args[0] in ("help", "-h", "--help"):
+        print(HELP)
+        return
+    if args[0] not in CLIENTS:
+        die(f"unknown client '{args[0]}'. Allowed: {', '.join(CLIENTS)}")
+    NAME = args[0]
+    VMID, NODE = CLIENTS[NAME]
+    cmd = args[1] if len(args) > 1 else "status"
+    rest = args[2:]
+    log(f"CALL {NAME} " + (shlex.join(args[1:]) if cmd != "exec" else f"exec <{len(rest[0]) if rest else 0} chars>"))
+    if cmd == "exec" and rest:
+        log("  PS> " + rest[0].replace("\n", " ")[:500])
+    table = {
+        "status": cmd_status, "answer-iso": cmd_answer_iso, "create": cmd_create,
+        "exec": cmd_exec, "exec-status": cmd_exec_status, "detach-media": cmd_detach,
+        "screenshot": cmd_screenshot,
+        "start": lambda a: cmd_power("start", a), "shutdown": lambda a: cmd_power("shutdown", a),
+        "stop": lambda a: cmd_power("stop", a),
+    }
+    if cmd not in table:
+        die(f"unknown command '{cmd}'. Run win-client help")
+    table[cmd](rest)
+
+
+if __name__ == "__main__":
+    main()

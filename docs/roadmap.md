@@ -48,7 +48,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 | Item | Placement | Evidence to finish it |
 |---|---|---|
 | [x] **Windows Server DC** (evaluation), small AD domain: `dc01` (VM 152, darrow), `ad.demarzo.lab` ([runbook](runbooks/build-domain-controller.md)) | VLAN 40 · 4 GiB | ✅ Domain up (dcdiag passes), and the DC forwards to dns1/dns2: its lookups show up in Splunk at dns1 from the Security zone. The evaluation expires 2027-03-30 |
-| [ ] **Windows 11 client**, domain-joined | VLAN 40 · ~4 GiB | Domain logon events in Splunk |
+| [ ] **Two Windows 11 clients** (Enterprise evaluation), domain-joined: `ws01` (VM 251, sevro) and `ws02` (VM 350, ragnar), spread off darrow ([runbook](runbooks/build-windows-client.md)) | VLAN 40 · 4 GiB each | Domain logon events in Splunk |
 | [ ] **Sysmon** (community config) + Universal Forwarder on both | – | Sysmon process/network/DNS events in Splunk, within the ingest budget |
 | [ ] Golden templates for both, for rebuilding when the evaluations expire | VM-Templates (NFS) | Runbook plus one timed rebuild |
 
@@ -72,4 +72,4 @@ Each item is one emulated attack → [detection](../detections/) → [case write
 - **Ansible** config management and **Terraform** provisioning from `ops`. Paused in favor of SOC work ([ADR 0006](adr/0006-soc-focus-with-splunk.md)). `ops` stays ready as the control node.
 
 ## Capacity
-Splunk (8 GiB) plus the AD targets (~8 GiB) come to about 16 GiB. darrow alone has about 25 GiB free.
+Phase 4 spreads the Windows guests across the cluster instead of stacking them on the biggest node. darrow holds splunk (8 GiB), dc01 (4 GiB) and the llm LXC (12 GiB), about 78% of its RAM. The clients go on the quieter nodes: ws01 on sevro (about 33% used before) and ws02 on ragnar (about 22%), 4 GiB each.

@@ -52,7 +52,7 @@ Everything runs from `ops` through [`scripts/vm152`](../../scripts/vm152), a wra
 
 ## Not done yet (roadmap Phase 4)
 - Sysmon + Universal Forwarder (`wineventlog`, `sysmon` indexes)
-- Windows 11 client joined to the domain
+- Windows 11 clients joined to the domain: `ws01` and `ws02` ([runbook](build-windows-client.md))
 - Golden template for rebuilds
 
 Lab hosts outside the domain can't resolve `ad.demarzo.lab` yet. Domain members use the DC as their DNS server. If lab-wide resolution is needed, add a conditional forwarder on Technitium.
