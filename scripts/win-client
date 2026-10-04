@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 # One client per non-darrow node, so the lab's load is spread across the cluster.
 CLIENTS = {"ws01": (251, "sevro"), "ws02": (350, "ragnar")}
 VLAN = 40
-HERE = os.path.expanduser("~/dc-build")
+HERE = os.path.expanduser("~/claude/dc-build")
 LOG = os.path.join(HERE, "log", "win-client.log")
 CFG = os.path.expanduser("~/.config/proxmox-mcp/config.json")
 LOCAL_PASSFILE = os.path.expanduser("~/.config/dc-build/client-admin.pass")   # labadmin on the clients
@@ -30,7 +30,7 @@ HELP = f"""win-client - manage the lab's Windows 11 clients only: {', '.join(f'{
 
   win-client NAME status             does the VM exist, power state, key config, guest agent
   win-client NAME answer-iso         build NAME's answer ISO from autounattend-win11-client.xml in
-                                       ~/dc-build (fills in __COMPUTER_NAME__ and __ADMIN_PASSWORD__)
+                                       ~/claude/dc-build (fills in __COMPUTER_NAME__ and __ADMIN_PASSWORD__)
   win-client NAME create [--cores N] [--memory MB] [--disk GB]
                                      create the VM (defaults 2 cores, 4096 MB, 64 GB): OVMF + Secure
                                        Boot keys, vTPM 2.0, Windows, virtio and answer ISOs attached

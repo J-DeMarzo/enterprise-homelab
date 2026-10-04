@@ -12,14 +12,14 @@ Everything runs from `ops` through [`scripts/vm152`](../../scripts/vm152), a wra
 
 - Proxmox token: read from the MCP config on ops, never printed.
 - Admin password: `~/.config/dc-build/admin.pass` on ops (0600, outside the work folder). `vm152` replaces `__ADMIN_PASSWORD__` in the answer file and in `exec` commands, and never logs the value.
-- Work folder `~/dc-build/`: the answer file, `log/vm152.log` (every call), screenshots.
+- Work folder `~/claude/dc-build/`: the answer file, `log/vm152.log` (every call), screenshots.
 
 ## Steps
 1. **Media** (one-time). Download the Windows Server 2025 evaluation ISO (Microsoft Evaluation Center, behind a form) **on sefi**, into `/pax/iso/template/iso/`, the local path behind the NFS `ISO` storage. Name it `WinServer2025-eval-26100.32230.iso` and `chmod 644` it.
    - 2026-10-02 build: 8,152,356,864 bytes, SHA-256 `7b052573ba7894c9924e3e87ba732ccd354d18cb75a883efa9b900ea125bfd51`.
    - `install.wim` index **2** = `SERVERSTANDARD` (Desktop Experience). Indexes 1/3 are Core, 4 is Datacenter.
    - The virtio drivers come from `virtio-win-0.1.285.iso`, which has `2k25` driver folders.
-2. **Answer file:** [`windows/autounattend-server2025-dc.xml`](../../windows/autounattend-server2025-dc.xml) → `~/dc-build/autounattend.xml`, then `vm152 answer-iso autounattend.xml`. The ISO is built on sefi itself, not through an NFS client ([INC-2026-001](../incidents/2026-09-30-darrow-nfs-stale-handle.md)). The file covers:
+2. **Answer file:** [`windows/autounattend-server2025-dc.xml`](../../windows/autounattend-server2025-dc.xml) → `~/claude/dc-build/autounattend.xml`, then `vm152 answer-iso autounattend.xml`. The ISO is built on sefi itself, not through an NFS client ([INC-2026-001](../incidents/2026-09-30-darrow-nfs-stale-handle.md)). The file covers:
    - SeaBIOS with an MBR partition, so there's no UEFI "press any key to boot from CD" prompt
    - virtio-scsi drivers loaded in WinPE from D:/E:/F:
    - image index 2, computer name DC01, and auto-logon once

@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 VMID, NODE, VLAN = 152, "darrow", 40
 # Installed root-owned in /usr/local/bin so the agent can't rewrite it; its working
 # folder (answer file, logs, screenshots) is fixed.
-HERE = os.path.expanduser("~/dc-build")
+HERE = os.path.expanduser("~/claude/dc-build")
 LOG = os.path.join(HERE, "log", "vm152.log")
 CFG = os.path.expanduser("~/.config/proxmox-mcp/config.json")
 PASSFILE = os.path.expanduser("~/.config/dc-build/admin.pass")

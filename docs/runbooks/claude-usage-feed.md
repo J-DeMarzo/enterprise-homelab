@@ -9,7 +9,7 @@ Homepage (Servers, VLAN 30) can't open connections into Management ([firewall ru
 
 | Piece | Host | What it does |
 |---|---|---|
-| `claude-usage-push.timer` (user unit, every 60 s) | ops | Runs `~/claude-usage/push.py` |
+| `claude-usage-push.timer` (user unit, every 60 s) | ops | Runs `~/claude/claude-usage/push.py` |
 | `push.py` + `server.py` | ops | `fetch()` (in `server.py`) reads the OAuth token from `~/.claude/.credentials.json` and calls `api.anthropic.com/api/oauth/usage`. `push.py` adds an `updated` timestamp, and on failure re-sends the last good data (`last.json`) with `ok: false` |
 | `providers.py` | ops | Codex: `~/.codex/auth.json` → `chatgpt.com/backend-api/wham/usage`. Copilot: `~/.copilot/config.json` → `api.github.com/copilot_internal/user`. OpenCode: read-only query of `~/.local/share/opencode/opencode.db`. Each result goes under its own key in `usage.json`, with its own `updated`/`ok`, and falls back to the last good value independently. Claude's fields stay top-level |
 | Key `~/.ssh/claude-usage-push` | ops | Used only for this job. `push.py` runs ssh with `-F none`, so the admin key `demarzo@ops` is never offered |
@@ -35,8 +35,8 @@ After a homepage rebuild, its host key changes. Update `ops:~/.ssh/known_hosts` 
 
 ## Rebuild: ops side
 ```bash
-mkdir -p ~/claude-usage ~/.config/systemd/user
-cp server.py push.py providers.py ~/claude-usage/
+mkdir -p ~/claude/claude-usage ~/.config/systemd/user
+cp server.py push.py providers.py ~/claude/claude-usage/
 cp claude-usage-push.service claude-usage-push.timer ~/.config/systemd/user/
 ssh-keygen -t ed25519 -N "" -C claude-usage-push@ops -f ~/.ssh/claude-usage-push   # then update homepage's authorized_keys
 sudo loginctl enable-linger demarzo          # timers keep running with no one logged in
@@ -49,6 +49,6 @@ Claude Code must be signed in on `ops` (`~/.claude/.credentials.json`). For the 
 | Symptom | Check |
 |---|---|
 | **Updated** keeps getting older | On ops: `journalctl --user -u claude-usage-push -n 20` |
-| `"ok": false` with a 401 error | Token expired. Run that tool (Claude Code / `codex` / `copilot`) on ops once to refresh it. Check which key failed with `jq . ~/claude-usage/last.json` |
+| `"ok": false` with a 401 error | Token expired. Run that tool (Claude Code / `codex` / `copilot`) on ops once to refresh it. Check which key failed with `jq . ~/claude/claude-usage/last.json` |
 | *Permission denied (publickey)* | Key or `from=` mismatch in homepage's `authorized_keys` |
 | Card shows an API error | On homepage: `systemctl status claude-usage-web`; `curl -s 127.0.0.1:8787/usage.json` |

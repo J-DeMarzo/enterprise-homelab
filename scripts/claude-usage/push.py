@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from providers import PROVIDERS
 from server import fetch
 
-LAST = os.path.expanduser("~/claude-usage/last.json")
+LAST = os.path.expanduser("~/claude/claude-usage/last.json")
 # Dedicated key, forced on the Homepage side to only write usage.json
 # (restrict,from="10.12.5.10",command="cat > ...usage.json.tmp && mv ...").
 KEY = os.path.expanduser("~/.ssh/claude-usage-push")

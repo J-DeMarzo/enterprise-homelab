@@ -18,7 +18,7 @@ Everything runs from `ops` through [`scripts/win-client`](../../scripts/win-clie
 
 - Proxmox token: read from the MCP config on ops, never printed.
 - Passwords on ops (0600, outside the work folder): `~/.config/dc-build/client-admin.pass` for the clients' local `labadmin`, and `~/.config/dc-build/admin.pass` for `LAB\Administrator`. `exec` fills in `__ADMIN_PASSWORD__` / `__DOMAIN_PASSWORD__` and never logs the values.
-- Work folder `~/dc-build/`: the answer file, `log/win-client.log` (every call), screenshots.
+- Work folder `~/claude/dc-build/`: the answer file, `log/win-client.log` (every call), screenshots.
 
 ## Steps
 1. **Media** (one-time). On **sefi**, into `/pax/iso/template/iso/` (the path behind the NFS `ISO` storage):
@@ -28,7 +28,7 @@ Everything runs from `ops` through [`scripts/win-client`](../../scripts/win-clie
    The Evaluation Center page asks for a form, but the fwlink behind it redirects straight to Microsoft's CDN. `chmod 644` the file.
    - 2026-10-03 build: 26H2, build 26300.9457, 8,225,329,152 bytes, SHA-256 `bc3f24086ebadc94489066b5ad78089e2cf5c3491e90e790bb81a2b199c10e38`.
    - `install.wim` has a single image (index 1, `Windows 11 Enterprise Evaluation`, `EnterpriseEval`). The media is UDF-only, so `isoinfo` can't list it; loop-mount it read-only on sefi to inspect it.
-2. **Answer file:** [`windows/autounattend-win11-client.xml`](../../windows/autounattend-win11-client.xml) → `~/dc-build/`, then `win-client ws01 answer-iso` (and `ws02`). The ISO is built on sefi itself ([INC-2026-001](../incidents/2026-09-30-darrow-nfs-stale-handle.md)). The file covers:
+2. **Answer file:** [`windows/autounattend-win11-client.xml`](../../windows/autounattend-win11-client.xml) → `~/claude/dc-build/`, then `win-client ws01 answer-iso` (and `ws02`). The ISO is built on sefi itself ([INC-2026-001](../incidents/2026-09-30-darrow-nfs-stale-handle.md)). The file covers:
    - GPT for UEFI: EFI system partition, MSR, Windows
    - virtio-scsi and NetKVM drivers (`w11` folders) loaded in WinPE from D:/E:/F:
    - computer name, local `labadmin` (Administrators), online-account and Wi-Fi screens hidden, auto-logon once

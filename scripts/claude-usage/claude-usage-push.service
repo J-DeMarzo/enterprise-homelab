@@ -4,5 +4,5 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/claude-usage
-ExecStart=/usr/bin/python3 %h/claude-usage/push.py
+WorkingDirectory=%h/claude/claude-usage
+ExecStart=/usr/bin/python3 %h/claude/claude-usage/push.py
