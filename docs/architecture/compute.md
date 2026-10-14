@@ -57,7 +57,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | `template` | Golden images, never run directly | Clone, don't modify |
 | `desktop` | Interactive workstations | |
 
-**Zone: which VLAN it lives on:** `net-mgmt` (5), `net-svc` (30), `net-lab` (40), `net-dmz` (50)
+**Zone: which VLAN it lives on:** `net-mgmt` (5), `net-svc` (30), `net-lab` (40), `net-dmz` (50), or `net-sc300` for the SDN network of the separate [SC-300 identity lab](https://github.com/J-DeMarzo/sc300-identity-lab)
 
 | Guest | Role | Zone |
 |---|---|---|
@@ -69,7 +69,7 @@ Every guest has exactly two tags. They show up as colored chips in the Proxmox t
 | dmz-edge | `app` | `net-dmz` |
 | splunk | `infra` | `net-svc` |
 | kali, Kali-Master | `lab` | `net-lab` |
-| dc01, ws01, ws02 | `lab` | `net-lab` |
+| dc01, ws01, ws02 (VMs 252 to 254, sevro) | `lab` | `net-sc300`. Part of the SC-300 lab, not the SOC estate |
 | ubuntu-2404-ci (9001) | `template` | `net-svc` (default for clones) |
 | Omarchy | `desktop` | `net-svc` |
 

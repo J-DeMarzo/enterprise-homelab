@@ -45,17 +45,18 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 | [ ] License check after 7 days | – | Measured MB/day per source vs. the budget in siem.md |
 
 ## Phase 4: Something worth defending
+> **Retired 2026-10-14.** The first AD estate (`ad.demarzo.lab`: `dc01`, `ws01`, `ws02`) was torn down to make room for the separate [SC-300 identity lab](https://github.com/J-DeMarzo/sc300-identity-lab). The full build, runbooks and scripts are kept at the git tag [`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1). The AD targets for Phase 5 will be rebuilt when that work starts. The Sysmon + forwarder installer and the Windows telemetry findings below stay in the repo because they apply to any Windows host.
+
 | Item | Placement | Evidence to finish it |
 |---|---|---|
-| [x] **Windows Server DC** (evaluation), small AD domain: `dc01` (VM 152, darrow), `ad.demarzo.lab` ([runbook](runbooks/build-domain-controller.md)) | VLAN 40 · 4 GiB | ✅ Domain up (dcdiag passes), and the DC forwards to dns1/dns2: its lookups show up in Splunk at dns1 from the Security zone. The evaluation expires 2027-03-30 |
-| [x] **Two Windows 11 clients** (Enterprise evaluation), domain-joined: `ws01` (VM 251, sevro) and `ws02` (VM 350, ragnar), spread off darrow ([runbook](runbooks/build-windows-client.md)) | VLAN 40 · 4 GiB each | ✅ dc01's Kerberos TGTs (4768), service tickets (4769) and logons (4624) for both clients are in Splunk from the moment of the join, with source IP and zone. They're machine-account logons: domain user accounts come before Phase 5 |
-| [x] **Sysmon** ([sysmon-modular](https://github.com/olafhartong/sysmon-modular), pinned) + Universal Forwarder on dc01, ws01, ws02 ([installer](../splunk/forwarder/install-uf-windows.ps1), [notes](architecture/siem.md#windows-specifics)) | – | ✅ A test DNS lookup, process and network connection from each host found in Splunk with fields and zones. About 27 MB/day for all three at idle, after fixing a Sysmon bug that dropped every DNS event and excluding the forwarder's own noise (first hour: ~670 MB/day of install churn) |
-| [ ] Golden templates for both, for rebuilding when the evaluations expire | VM-Templates (NFS) | Runbook plus one timed rebuild |
+| [x] **Windows Server DC and two Windows 11 clients**, domain-joined (`ad.demarzo.lab`), built 2026-10-02/03 | VLAN 40 | ✅ Domain up (`dcdiag` passed), the DC forwarded to dns1/dns2, and Kerberos TGTs (4768), service tickets (4769) and logons (4624) for both clients were in Splunk from the moment of the join, with source IP and zone. **Retired**, see above |
+| [x] **Sysmon** ([sysmon-modular](https://github.com/olafhartong/sysmon-modular), pinned) + Universal Forwarder on all three ([installer](../splunk/forwarder/install-uf-windows.ps1), [notes](architecture/siem.md#windows-specifics)) | – | ✅ A test DNS lookup, process and network connection from each host found in Splunk with fields and zones. About 27 MB/day for all three at idle, after fixing a Sysmon bug that dropped every DNS event and excluding the forwarder's own noise (first hour: ~670 MB/day of install churn) |
+| [ ] **Rebuild the AD targets** (DC, domain users, GPO baseline, two clients) from golden templates, before the AD-based Phase 5 attacks | VLAN 40 | Runbook plus one timed rebuild |
 
 ## Phase 5: SOC workflow evidence
 Each item is one emulated attack → [detection](../detections/) → [case write-up](investigations/).
 - [ ] SSH brute force against a Linux host (T1110.001)
-- [ ] Password spraying against AD (T1110.003)
+- [ ] Password spraying against AD (T1110.003), needs the rebuilt AD targets
 - [ ] Kerberoasting (T1558.003)
 - [ ] LSASS credential dumping (T1003.001)
 - [ ] Persistence via scheduled task (T1053.005)
@@ -70,6 +71,3 @@ Each item is one emulated attack → [detection](../detections/) → [case write
 
 ## On hold
 - **Ansible** config management and **Terraform** provisioning from `ops`. Paused in favor of SOC work ([ADR 0006](adr/0006-soc-focus-with-splunk.md)). `ops` stays ready as the control node.
-
-## Capacity
-Phase 4 spreads the Windows guests across the cluster instead of stacking them on the biggest node. darrow holds splunk (8 GiB), dc01 (4 GiB) and the llm LXC (12 GiB), about 78% of its RAM. The clients go on the quieter nodes: ws01 on sevro (about 33% used before) and ws02 on ragnar (about 22%), 4 GiB each.

@@ -89,7 +89,9 @@ def guest_row(t, g):
     node, vmid, kind = g["node"], g["vmid"], g["type"]
     cfg = t.try_get(f"/nodes/{node}/{kind}/{vmid}/config") or {}
     net = parse_kv(cfg.get("net0"))
-    vlan = net.get("tag", str(NATIVE_VLAN))
+    bridge = net.get("bridge", "vmbr0")
+    # An SDN vnet is its own network, not a VLAN on vmbr0: show its name instead.
+    vlan = net.get("tag") or (str(NATIVE_VLAN) if bridge == "vmbr0" else f"{bridge} (SDN)")
 
     ip = net.get("ip") or parse_kv(cfg.get("ipconfig0")).get("ip") or "dhcp"
     ip = ip.split("/")[0]

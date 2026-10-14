@@ -18,14 +18,15 @@
 | 100 | llm | LXC | TheRising/darrow | running | 6 | 12 GiB | 30 | 10.12.30.40 | app, net-svc |
 | 150 | Omarchy | VM | TheRising/darrow | stopped | 4 | 8 GiB | 30 | dhcp | desktop, net-svc |
 | 151 | splunk | VM | TheRising/darrow | running | 4 | 8 GiB | 30 | 10.12.30.20 | infra, net-svc |
-| 152 | dc01 | VM | TheRising/darrow | running | 2 | 4 GiB | 40 | 10.12.40.10 (dhcp) | lab, net-lab |
 | 200 | dns1 | LXC | TheRising/sevro | running | 1 | 512 MiB | 5 | 10.12.5.53 | infra, net-mgmt |
-| 201 | fantasy | LXC | TheRising/sevro | running | 2 | 4 GiB | 30 | 10.12.30.30 | app, net-svc |
-| 250 | kali | VM | TheRising/sevro | running | 4 | 4 GiB | 40 | 10.12.40.101 (dhcp) | lab, net-lab |
-| 251 | ws01 | VM | TheRising/sevro | running | 2 | 4 GiB | 40 | 10.12.40.102 (dhcp) | lab, net-lab |
+| 201 | fantasy | LXC | TheRising/sevro | stopped | 2 | 4 GiB | 30 | 10.12.30.30 | app, net-svc |
+| 250 | kali | VM | TheRising/sevro | stopped | 4 | 4 GiB | 40 | dhcp | lab, net-lab |
+| 252 | dc01 | VM | TheRising/sevro | running | 2 | 4 GiB | sc300 (SDN) | 10.12.41.2 (dhcp) | lab, net-sc300 |
+| 253 | ws01 | VM | TheRising/sevro | running | 2 | 4 GiB | sc300 (SDN) | 10.12.41.11 (dhcp) | lab, net-sc300 |
+| 254 | ws02 | VM | TheRising/sevro | running | 2 | 4 GiB | sc300 (SDN) | 10.12.41.12 (dhcp) | lab, net-sc300 |
 | 300 | homepage | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.100 (dhcp) | app, net-svc |
 | 301 | bots | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.101 (dhcp) | admin, net-svc |
-| 350 | ws02 | VM | TheRising/ragnar | running | 2 | 4 GiB | 40 | 10.12.40.100 (dhcp) | lab, net-lab |
+| 351 | csec | VM | TheRising/ragnar | stopped | 2 | 4 GiB | 40 | dhcp | - |
 | 400 | dns2 | LXC | Sefi/sefi | running | 1 | 512 MiB | 5 | 10.12.5.54 | infra, net-mgmt |
 | 401 | dmz-edge | LXC | Sefi/sefi | running | 1 | 512 MiB | 50 | 10.12.50.10 | app, net-dmz |
 | 450 | ops | VM | Sefi/sefi | running | 4 | 6 GiB | 5 | 10.12.5.10 | admin, net-mgmt |
@@ -36,15 +37,15 @@
 
 | Target | Storage | Type | Node | Used | Size |
 |---|---|---|---|---|---|
-| Sefi | ISO | dir | sefi | 53 GiB | 5456 GiB |
-| Sefi | Snippets | dir | sefi | 53 GiB | 5456 GiB |
-| Sefi | Templates | dir | sefi | 53 GiB | 5456 GiB |
-| Sefi | local-zfs | zfspool | sefi | 5 GiB | 450 GiB |
-| Sefi | pax | zfspool | sefi | 53 GiB | 5456 GiB |
-| TheRising | ISO | nfs | shared | 53 GiB | 5456 GiB |
-| TheRising | Snippets | nfs | shared | 53 GiB | 5456 GiB |
-| TheRising | Templates | nfs | shared | 53 GiB | 5456 GiB |
-| TheRising | VM-Templates | nfs | shared | 53 GiB | 5456 GiB |
-| TheRising | fast-local | zfspool | darrow | 252 GiB | 899 GiB |
-| TheRising | fast-local | zfspool | ragnar | 71 GiB | 450 GiB |
-| TheRising | fast-local | zfspool | sevro | 132 GiB | 450 GiB |
+| Sefi | ISO | dir | sefi | 68 GiB | 5455 GiB |
+| Sefi | Snippets | dir | sefi | 68 GiB | 5455 GiB |
+| Sefi | Templates | dir | sefi | 68 GiB | 5455 GiB |
+| Sefi | local-zfs | zfspool | sefi | 6 GiB | 449 GiB |
+| Sefi | pax | zfspool | sefi | 69 GiB | 5456 GiB |
+| TheRising | ISO | nfs | shared | 68 GiB | 5455 GiB |
+| TheRising | Snippets | nfs | shared | 68 GiB | 5455 GiB |
+| TheRising | Templates | nfs | shared | 68 GiB | 5455 GiB |
+| TheRising | VM-Templates | nfs | shared | 68 GiB | 5455 GiB |
+| TheRising | fast-local | zfspool | darrow | 191 GiB | 899 GiB |
+| TheRising | fast-local | zfspool | ragnar | 12 GiB | 450 GiB |
+| TheRising | fast-local | zfspool | sevro | 126 GiB | 450 GiB |

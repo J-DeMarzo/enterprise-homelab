@@ -16,7 +16,7 @@ flowchart LR
         dns["Technitium dns1 / dns2<br/>DNS queries"]
         mgmt["Mgmt: Proxmox hosts · ops"]
         srv["Servers: homepage · bots · fantasy"]
-        sec["Security: Kali · AD targets (Phase 4)"]
+        sec["Security: Kali · AD targets (to be rebuilt)"]
         dmz["DMZ: dmz-edge<br/>Caddy · cloudflared"]
     end
     subgraph splunk["splunk · 10.12.30.20 (Servers)"]
@@ -40,7 +40,7 @@ flowchart LR
 | 10 | Internal | Firewall denies, DHCP, DNS **security signals only** | None (household devices) |
 | 20 | IoT | Firewall denies, DHCP, **full DNS** | None (can't install agents) |
 | 30 | Servers | Splunk `_internal`, homepage, bots, fantasy | UF on homepage, bots, fantasy |
-| 40 | Security | Kali, then AD DC + Windows 11 with Sysmon (Phase 4) | UF (+ Sysmon) |
+| 40 | Security | Kali; AD DC + Windows 11 with Sysmon (first estate retired 2026-10-14, to be rebuilt) | UF (+ Sysmon) |
 | 50 | DMZ | `dmz-edge` Caddy access logs (`web`), cloudflared and OS logs (`linux`, journald) | UF on dmz-edge |
 | 99 | Guest | Firewall denies, DHCP | None |
 
@@ -69,8 +69,8 @@ By data type, not by VLAN. The zone comes from the lookup. Definitions: [`indexe
 | Caddy access logs (demarzo.dev) | dmz-edge (UF, `/var/log/caddy/`) | `caddy:access` | `web` | ✅ 2026-10-01. JSON. `src_ip` = the real visitor (`request.client_ip`, from `Cf-Connecting-Ip`), `http_method`, `uri`, `status`, `site`, `http_user_agent`. Verified with a request through Cloudflare from the home IP |
 | System journal | ops, dns1, dns2 (UF); dmz-edge, homepage, bots, fantasy, darrow, sevro, ragnar, sefi (UF) | `journald` | `linux` | ✅ 2026-09-30 / 2026-10-01 |
 | Proxmox API access log | darrow, sevro, ragnar, sefi (UF, `/var/log/pveproxy/access.log`) | `pve:access` | `linux` | ✅ 2026-10-01. Fields: `src_ip`, `user` (user or API token), `method`, `uri`, `status`, `src_zone`. Every call by each [ADR 0009](../adr/0009-least-privilege-proxmox-api-identities.md) identity is auditable |
-| Windows event logs | dc01, ws01, ws02 (UF, [installer](../../splunk/forwarder/install-uf-windows.ps1)) | `XmlWinEventLog:<channel>` | `wineventlog` | ✅ 2026-10-03. Security, System, Application, PowerShell/Operational, Defender/Operational. Fields: `EventCode`, `Computer`, `Channel`, every EventData field by name (`TargetUserName`, `IpAddress`, `LogonType`, …), `src_ip`, `src_zone`. The clients' Kerberos TGTs (4768), service tickets (4769) and logons (4624) at dc01 are searchable from the moment they joined |
-| Sysmon | dc01, ws01, ws02 (UF) | `XmlWinEventLog:Microsoft-Windows-Sysmon/Operational` | `sysmon` | ✅ 2026-10-03. sysmon-modular default config. Process (1), network (3), image load (7), file (11), registry (12/13), DNS (22) and more. Fields as above plus `src_ip`/`dest_ip` with zones on network events |
+| Windows event logs | dc01, ws01, ws02 (retired 2026-10-14; data stays until retention. UF, [installer](../../splunk/forwarder/install-uf-windows.ps1)) | `XmlWinEventLog:<channel>` | `wineventlog` | ✅ 2026-10-03. Security, System, Application, PowerShell/Operational, Defender/Operational. Fields: `EventCode`, `Computer`, `Channel`, every EventData field by name (`TargetUserName`, `IpAddress`, `LogonType`, …), `src_ip`, `src_zone`. The clients' Kerberos TGTs (4768), service tickets (4769) and logons (4624) at dc01 are searchable from the moment they joined |
+| Sysmon | dc01, ws01, ws02 (retired 2026-10-14; UF) | `XmlWinEventLog:Microsoft-Windows-Sysmon/Operational` | `sysmon` | ✅ 2026-10-03. sysmon-modular default config. Process (1), network (3), image load (7), file (11), registry (12/13), DNS (22) and more. Fields as above plus `src_ip`/`dest_ip` with zones on network events |
 
 **Timestamps:** the Omada devices' clocks were ~3 minutes slow, and the access point's syslog header also had a wrong UTC offset (fixed at the source on 2026-09-30 with NTP and a DST-aware time zone). rsyslog prefixes every line with its own **NTP-synced receive time**, and Splunk uses that as `_time`. The device's timestamp stays in the raw event. Verified: a probe from kali at 11:30:58 was indexed at 11:30:58.
 

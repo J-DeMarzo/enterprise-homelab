@@ -1,10 +1,8 @@
 # Install Sysmon (sysmon-modular config) and the Splunk Universal Forwarder on a lab Windows host.
 # The Windows counterpart of install-uf.sh. Run as SYSTEM or an elevated admin. Idempotent: a rerun
 # updates the Sysmon config and rewrites the forwarder's inputs/outputs.
-# From ops, through the guest agent (the wrappers base64-encode the script):
-#   win-client ws01 exec "$(cat install-uf-windows.ps1)"      (clients)
-#   vm152 exec "$(cat install-uf-windows.ps1)"                (dc01)
-# The MSI install outlasts the 50 s exec wait: poll with exec-status <pid>, then read
+# Through the QEMU guest agent: qm guest exec <vmid> --synchronous 0 -- powershell.exe -EncodedCommand <base64 UTF-16LE>
+# The MSI install outlasts the agent's 60 s limit: start it detached, then read
 # C:\ProgramData\homelab\install-uf.log.
 # Design and data policy: docs/architecture/siem.md.
 # No param() block: the exec wrappers prepend a line, and param() must come first.
