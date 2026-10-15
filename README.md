@@ -50,7 +50,7 @@ flowchart TB
 | **Hypervisor** | Proxmox VE: 3-node cluster (`TheRising`) + standalone storage node (`Sefi`), 32 threads / ~100 GiB RAM |
 | **Network** | TP-Link Omada gateway. 7 VLANs (management, internal, IoT, servers, security lab, DMZ, guest) with a default-deny ACL policy |
 | **SIEM** | Splunk Enterprise: Universal Forwarders, Sysmon, DNS and firewall logs, a homemade alert queue on Splunk Free ([ADR 0006](docs/adr/0006-soc-focus-with-splunk.md)) |
-| **Targets** | Windows 11 and Linux hosts on the isolated lab VLAN, with Sysmon and Universal Forwarders. An Active Directory estate was built and retired 2026-10-14 ([`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1)); AD attacks are an optional, separate track |
+| **Targets** | Windows 11 and Linux hosts on the isolated lab VLAN, with Sysmon and Universal Forwarders. An Active Directory estate was built and retired 2026-10-14 ([`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1)) |
 | **Core services** | Redundant Technitium DNS (`demarzo.lab`) split across failure domains |
 
 Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture/network.md) · [firewall rules](docs/architecture/firewall-rules.md) · [compute](docs/architecture/compute.md) · [storage](docs/architecture/storage.md) · [DNS](docs/architecture/dns.md) · [live inventory](docs/inventory.md)
@@ -73,9 +73,10 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 | 3 | Visibility: Splunk plus log sources | ✅ Mostly done |
 | 4 | Targets: Windows and Linux hosts with Sysmon (no AD dependency) | ♻️ Sysmon + forwarder proven; standalone Windows target and templates planned |
 | 5 | SOC workflow evidence: emulate → detect → investigate → write up | 🗓️ Planned |
-| – | Optional, parked: Active Directory attack track | 🗓️ Not started |
 
 Full detail: [docs/roadmap.md](docs/roadmap.md)
+
+**Related project:** [sc300-identity-lab](https://github.com/J-DeMarzo/sc300-identity-lab), my identity and access track (Active Directory, Entra ID, Microsoft SC-300 exam lab), kept in its own repo with its own roadmap.
 
 ## Repository layout
 
