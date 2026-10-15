@@ -33,6 +33,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 
 | Item | Placement | Evidence to finish it |
 |---|---|---|
+| [ ] **Next: license check.** The 7-day mark passed on 2026-10-08, so this is overdue | – | Measured MB/day per source vs. the budget in [siem.md](architecture/siem.md#license-budget). Decides whether the Free-tier switch needs more filtering |
 | [x] **Splunk Enterprise** 10.4.4 (60-day trial → Free), VM `splunk` (151, was 210) at 10.12.30.20, cloned from template 9001 ([runbook](runbooks/deploy-splunk.md)) | darrow · 4 vCPU / 8 GiB / 150 GiB | T11 ✅, T12 ✅, T25 ✅, T26–T30 ✅ |
 | [x] Indexes, zone lookup, rsyslog intake (`homelab_base` app) | splunk | 7 indexes with retention. Zone lookup verified for one IP per VLAN + external. 514 intake tested |
 | [x] **Omada** remote syslog: gateway ACL events, controller DHCP, access point flows (household-filtered) | gateway, controller, AP | ✅ A kali → Management probe at 11:30:58 was indexed at 11:30:58 as `security → management`, Block. 0 household flows indexed |
@@ -42,26 +43,30 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 | [x] **dmz-edge** forwarder: Caddy → `web`, cloudflared and OS → `linux` (rule 8 gets DMZ as a source) | dmz-edge | ✅ A request to demarzo.dev through Cloudflare was indexed with the home's public IP as `src_ip` (from `Cf-Connecting-Ip`), not 127.0.0.1. [T39–T41](architecture/firewall-rules.md#retests-after-dmz-joined-rule-8-2026-10-01): only :9997 is reachable from the DMZ |
 | [x] Zone overview dashboard (deny matrix, DNS by zone, new DHCP devices, config changes, data health). Built 2026-10-01 ([siem.md](architecture/siem.md#dashboards)) | – | ✅ [Screenshot](images/zone-overview.png) (aggregates only) |
 | [x] **Alert queue** + first detections (new device on Management, denied probes toward Management, new IoT domain, DNS tunneling, web probing) | – | ✅ All 5 fired on their scheduled runs against recorded tests ([detections](../detections/README.md)). The Management test exposed a blind spot (static IPs leave no DHCP trace), and the detection gained a DNS-client signal |
-| [ ] License check after 7 days | – | Measured MB/day per source vs. the budget in siem.md |
 
 ## Phase 4: Something worth defending
-> **Retired 2026-10-14.** The first AD estate (`ad.demarzo.lab`: `dc01`, `ws01`, `ws02`) was torn down to make room for the separate [SC-300 identity lab](https://github.com/J-DeMarzo/sc300-identity-lab). The full build, runbooks and scripts are kept at the git tag [`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1). The AD targets for Phase 5 will be rebuilt when that work starts. The Sysmon + forwarder installer and the Windows telemetry findings below stay in the repo because they apply to any Windows host.
+No Active Directory in this phase. The SOC plan does not depend on any domain, and it is not tied to the separate [SC-300 identity lab](https://github.com/J-DeMarzo/sc300-identity-lab) either (an exam lab on its own isolated network, running on a trial tenant that ends). The first AD estate (`ad.demarzo.lab`: `dc01`, `ws01`, `ws02`, built 2026-10-02/03) was retired 2026-10-14. Its build, runbooks and scripts are kept at the git tag [`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1), and what it proved is recorded below.
 
 | Item | Placement | Evidence to finish it |
 |---|---|---|
-| [x] **Windows Server DC and two Windows 11 clients**, domain-joined (`ad.demarzo.lab`), built 2026-10-02/03 | VLAN 40 | ✅ Domain up (`dcdiag` passed), the DC forwarded to dns1/dns2, and Kerberos TGTs (4768), service tickets (4769) and logons (4624) for both clients were in Splunk from the moment of the join, with source IP and zone. **Retired**, see above |
-| [x] **Sysmon** ([sysmon-modular](https://github.com/olafhartong/sysmon-modular), pinned) + Universal Forwarder on all three ([installer](../splunk/forwarder/install-uf-windows.ps1), [notes](architecture/siem.md#windows-specifics)) | – | ✅ A test DNS lookup, process and network connection from each host found in Splunk with fields and zones. About 27 MB/day for all three at idle, after fixing a Sysmon bug that dropped every DNS event and excluding the forwarder's own noise (first hour: ~670 MB/day of install churn) |
-| [ ] **Rebuild the AD targets** (DC, domain users, GPO baseline, two clients) from golden templates, before the AD-based Phase 5 attacks | VLAN 40 | Runbook plus one timed rebuild |
+| [x] **Sysmon** ([sysmon-modular](https://github.com/olafhartong/sysmon-modular), pinned) + Universal Forwarder, built on the first estate ([installer](../splunk/forwarder/install-uf-windows.ps1), [notes](architecture/siem.md#windows-specifics)) | – | ✅ A test DNS lookup, process and network connection from each host found in Splunk with fields and zones. About 27 MB/day for three hosts at idle, after fixing a Sysmon bug that dropped every DNS event and excluding the forwarder's own noise (first hour: ~670 MB/day of install churn). The installer works on any Windows host |
+| [x] First AD estate (DC + two Win11 clients, domain-joined), then retired | VLAN 40 | ✅ `dcdiag` passed, and Kerberos TGTs (4768), service tickets (4769) and logons (4624) for both clients were in Splunk from the moment of the join, with source IP and zone. Kept at `ad-lab-v1` |
+| [ ] **Standalone Windows target**: one workgroup Windows 11 on VLAN 40 with Sysmon + UF, installed with the existing installer | VLAN 40 | Process, network and DNS events from it in Splunk with fields and zone. Covers the host-level attacks in Phase 5 that don't need a domain |
+| [ ] **Golden templates** for the Linux and Windows targets, so a target can be rebuilt on a schedule (evaluation licenses expire, see [ADR 0006](adr/0006-soc-focus-with-splunk.md)) | – | Runbook plus one timed rebuild of each |
 
 ## Phase 5: SOC workflow evidence
-Each item is one emulated attack → [detection](../detections/) → [case write-up](investigations/).
+Each item is one emulated attack → [detection](../detections/) → [case write-up](investigations/). Ordered by what needs the least new infrastructure, so the first cases don't wait on Phase 4.
 - [ ] SSH brute force against a Linux host (T1110.001)
-- [ ] Password spraying against AD (T1110.003), needs the rebuilt AD targets
+- [ ] DNS tunneling / exfiltration (T1071.004). The [detection](../detections/exfiltration-dns-tunneling.spl) exists, so this needs the emulation run and the write-up
+- [ ] Persistence via scheduled task (T1053.005), needs the standalone Windows target
+- [ ] LSASS credential dumping (T1003.001), needs the standalone Windows target
+- [ ] Bonus: [Boss of the SOC](https://github.com/splunk/botsv3) dataset investigations. This needs no lab targets, so it can fill the gaps while targets are being built
+
+## Optional track: Active Directory attacks (parked)
+Nothing above waits on this. It starts only when I decide to build a domain again, and it is built **separately from the SC-300 lab**: its own VMs on VLAN 40, restored from the `ad-lab-v1` build, with domain users and a GPO baseline added.
+- [ ] Rebuild a small AD estate (DC, domain users, GPO baseline, two clients) with Sysmon + UF. Evidence: runbook plus one timed rebuild
+- [ ] Password spraying against AD (T1110.003)
 - [ ] Kerberoasting (T1558.003)
-- [ ] LSASS credential dumping (T1003.001)
-- [ ] Persistence via scheduled task (T1053.005)
-- [ ] DNS tunneling / exfiltration (T1071.004)
-- [ ] Bonus: [Boss of the SOC](https://github.com/splunk/botsv3) dataset investigations
 
 ## Later / optional
 - Case management (TheHive or DFIR-IRIS) and SOAR (Shuffle)

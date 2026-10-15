@@ -1,8 +1,8 @@
 # Enterprise Homelab
 
-A homelab built as a **small enterprise SOC environment**: segmented networks, an Active Directory target estate (being rebuilt), Splunk as the SIEM, and an isolated attack VLAN. It exists to practice and demonstrate security operations: emulate an attack, detect it, investigate it, write it up.
+A homelab built as a **small enterprise SOC environment**: segmented networks, Splunk as the SIEM, Windows and Linux attack targets, and an isolated attack VLAN. It exists to practice and demonstrate security operations: emulate an attack, detect it, investigate it, write it up.
 
-> **Status:** infrastructure and documentation are in place. Lab isolation, Splunk, and the AD targets are being built now ([roadmap](docs/roadmap.md)). Investigations will appear below as they're completed.
+> **Status:** infrastructure and documentation are in place. Lab isolation and Splunk are built; the attack targets and first detections-to-case write-ups are next ([roadmap](docs/roadmap.md)). Investigations will appear below as they're completed.
 
 ## SOC workflow
 
@@ -37,7 +37,7 @@ flowchart TB
 
     mgmt --- m1["Proxmox hosts<br/>dns1 · dns2 · ops"]
     svc --- s1["Splunk (planned)<br/>homepage"]
-    lab --- l1["Kali<br/>AD targets (to be rebuilt)"]
+    lab --- l1["Kali<br/>Windows + Linux targets"]
 
     lab -. "forwarders :9997" .-> s1
     lab -. "DNS :53 only" .-> m1
@@ -50,7 +50,7 @@ flowchart TB
 | **Hypervisor** | Proxmox VE: 3-node cluster (`TheRising`) + standalone storage node (`Sefi`), 32 threads / ~100 GiB RAM |
 | **Network** | TP-Link Omada gateway. 7 VLANs (management, internal, IoT, servers, security lab, DMZ, guest) with a default-deny ACL policy |
 | **SIEM** | Splunk Enterprise: Universal Forwarders, Sysmon, DNS and firewall logs, a homemade alert queue on Splunk Free ([ADR 0006](docs/adr/0006-soc-focus-with-splunk.md)) |
-| **Targets** | Active Directory (Windows Server DC + Windows 11), to be rebuilt from golden templates. The first estate was retired 2026-10-14 ([`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1)) |
+| **Targets** | Windows 11 and Linux hosts on the isolated lab VLAN, with Sysmon and Universal Forwarders. An Active Directory estate was built and retired 2026-10-14 ([`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1)); AD attacks are an optional, separate track |
 | **Core services** | Redundant Technitium DNS (`demarzo.lab`) split across failure domains |
 
 Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture/network.md) · [firewall rules](docs/architecture/firewall-rules.md) · [compute](docs/architecture/compute.md) · [storage](docs/architecture/storage.md) · [DNS](docs/architecture/dns.md) · [live inventory](docs/inventory.md)
@@ -59,7 +59,7 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 
 - **Security operations:** alert triage, investigation, incident documentation, MITRE ATT&CK mapping
 - **Splunk:** data onboarding (forwarders, sourcetypes, indexes), SPL detections, dashboards, summary-index alerting
-- **Endpoint telemetry:** Sysmon, Windows Security events, Active Directory logging
+- **Endpoint telemetry:** Sysmon, Windows Security events, Linux journald
 - **Network security:** VLAN segmentation, firewall ACL design, and verification testing
 - **Infrastructure:** Proxmox clustering, templates, cloud-init, redundant DNS, docs as code
 
@@ -71,8 +71,9 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 | 1 | Hygiene: guest metadata, tags, admin host in the management zone | ✅ Mostly done |
 | 2 | Safe to attack: default-deny between VLANs, [tested](docs/architecture/firewall-rules.md#test-results) | ✅ Done |
 | 3 | Visibility: Splunk plus log sources | ✅ Mostly done |
-| 4 | Targets: Active Directory with Sysmon | ♻️ First estate built and retired; rebuild planned |
+| 4 | Targets: Windows and Linux hosts with Sysmon (no AD dependency) | ♻️ Sysmon + forwarder proven; standalone Windows target and templates planned |
 | 5 | SOC workflow evidence: emulate → detect → investigate → write up | 🗓️ Planned |
+| – | Optional, parked: Active Directory attack track | 🗓️ Not started |
 
 Full detail: [docs/roadmap.md](docs/roadmap.md)
 

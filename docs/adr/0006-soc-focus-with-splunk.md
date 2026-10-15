@@ -27,3 +27,6 @@ Two SIEMs were considered:
 - ❌ **Splunk Free has no authentication.** Anyone who can reach the web UI is admin, so the UI has to be network-restricted ([firewall rules](../architecture/firewall-rules.md)).
 - ❌ The 500 MB/day limit on Free means Windows/Sysmon logging has to be filtered. Three overages in 30 days disables search.
 - ❌ Evaluation Windows licenses expire (Server 180 days, Windows 11 90 days), so targets get rebuilt from templates on a schedule.
+
+## Update 2026-10-14
+The "Victims" decision above no longer holds as written. The first AD estate was built and then retired, and the [roadmap](../roadmap.md) no longer depends on any Active Directory: the near-term targets are Linux hosts and a standalone Windows 11. AD attacks (password spraying, Kerberoasting) stay as a parked optional track, built separately from the SC-300 identity lab. The decision to focus on SOC workflow evidence, and Splunk as the SIEM, is unchanged.

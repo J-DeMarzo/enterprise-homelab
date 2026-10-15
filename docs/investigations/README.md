@@ -13,4 +13,4 @@ Case write-ups from the lab. Each one follows a simulated attack from detection 
 
 | Date | Case | ATT&CK | Verdict |
 |---|---|---|---|
-| *No cases yet. The first ones come after the AD targets are rebuilt ([roadmap](../roadmap.md)).* | | | |
+| *No cases yet. The first ones are SSH brute force and DNS tunneling, which need no new targets ([roadmap](../roadmap.md#phase-5-soc-workflow-evidence)).* | | | |

@@ -16,7 +16,7 @@ flowchart LR
         dns["Technitium dns1 / dns2<br/>DNS queries"]
         mgmt["Mgmt: Proxmox hosts · ops"]
         srv["Servers: homepage · bots · fantasy"]
-        sec["Security: Kali · AD targets (to be rebuilt)"]
+        sec["Security: Kali · Windows + Linux targets"]
         dmz["DMZ: dmz-edge<br/>Caddy · cloudflared"]
     end
     subgraph splunk["splunk · 10.12.30.20 (Servers)"]
@@ -40,7 +40,7 @@ flowchart LR
 | 10 | Internal | Firewall denies, DHCP, DNS **security signals only** | None (household devices) |
 | 20 | IoT | Firewall denies, DHCP, **full DNS** | None (can't install agents) |
 | 30 | Servers | Splunk `_internal`, homepage, bots, fantasy | UF on homepage, bots, fantasy |
-| 40 | Security | Kali; AD DC + Windows 11 with Sysmon (first estate retired 2026-10-14, to be rebuilt) | UF (+ Sysmon) |
+| 40 | Security | Kali; Windows 11 and Linux targets with Sysmon (the first AD estate was retired 2026-10-14; a standalone Windows target is planned) | UF (+ Sysmon) |
 | 50 | DMZ | `dmz-edge` Caddy access logs (`web`), cloudflared and OS logs (`linux`, journald) | UF on dmz-edge |
 | 99 | Guest | Firewall denies, DHCP | None |
 
@@ -144,5 +144,5 @@ Splunk Free allows 500 MB/day. Estimates, to be replaced with measured values af
 | Technitium (filtered) | 20–80 |
 | Linux + Proxmox | 20–50 |
 | dmz-edge | 5–50 |
-| Windows + Sysmon (Phase 4) | 100–250 (measured **~27** for dc01 + 2 clients at idle, 2026-10-03; attacks and use add to it) |
+| Windows + Sysmon (Phase 4) | 100–250 (measured **~27** for three Windows hosts at idle, 2026-10-03; attacks and use add to it) |
 | **Total** | **~155–480** |
