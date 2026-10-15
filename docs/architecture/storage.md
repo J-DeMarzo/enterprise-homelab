@@ -9,7 +9,7 @@
 | `pax` | ZFS pool (5.3 TB) | sefi | Bulk data, backing store for the shares below | Large capacity on one box |
 | `ISO` | NFS (from sefi) | cluster-wide | Installer ISOs | One copy for every node |
 | `Templates` | NFS (from sefi) | cluster-wide | LXC templates | |
-| `VM-Templates` | NFS (from sefi) | cluster-wide | Golden VM images (9000, 9001) and verified cloud images (`import/`) | Any node can clone from them |
+| `VM-Templates` | NFS (from sefi) | cluster-wide | Golden VM image (9001; `Kali-Master` 9000 lives on sevro's `fast-local`, see [rebuild-kali](../runbooks/rebuild-kali.md)) and verified cloud images (`import/`) | Any node can clone from them |
 | `Snippets` | NFS (from sefi) | cluster-wide | Cloud-init snippets, hookscripts | |
 
 On Sefi the same shares show up as local `dir` storage, since they live on `pax`. Sefi's `ISO` storage (`/pax/iso`) also allows `import` content, so Sefi VMs can be built from the same verified cloud image.

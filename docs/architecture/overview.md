@@ -35,5 +35,5 @@ See the generated [inventory](../inventory.md). In short:
 | homepage | Lab dashboard | ragnar |
 | bots | Discord Proxmox bot (scoped `discord-bot@pve` token). Formerly `claude`, the agent workstation | ragnar |
 | fantasy | Dev/runtime host for the fantasy-app project (LXC 201) | sevro |
-| kali / Kali-Master | Offensive-security VM and its golden template | sevro / darrow |
+| kali / Kali-Master | Offensive-security VM and its golden template | sevro / sevro |
 | Omarchy | Linux desktop VM (stopped) | darrow |
