@@ -68,9 +68,9 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 | Phase | Focus | Status |
 |---|---|---|
 | 0 | Documentation foundation | ✅ Done |
-| 1 | Hygiene: guest metadata, tags, admin host in the management zone | ✅ Mostly done |
+| 1 | Hygiene: guest metadata, tags, admin host in the management zone | ✅ Done |
 | 2 | Safe to attack: default-deny between VLANs, [tested](docs/architecture/firewall-rules.md#test-results) | ✅ Done |
-| 3 | Visibility: Splunk plus log sources | ✅ Mostly done |
+| 3 | Visibility: Splunk plus log sources, [license budget measured](docs/architecture/siem.md#license-budget) | ✅ Done |
 | 4 | Targets: Windows and Linux hosts with Sysmon (no AD dependency) | ♻️ Sysmon + forwarder proven; standalone Windows target and templates planned |
 | 5 | SOC workflow evidence: emulate → detect → investigate → write up | 🗓️ Planned |
 
