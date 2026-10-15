@@ -136,13 +136,17 @@ Splunk Free has no authentication, so network controls are the only protection. 
 | 22 (SSH) | Management, admin desktop. Servers lost SSH on 2026-10-01 (T37) | ufw |
 
 ## License budget
-Splunk Free allows 500 MB/day. Estimates, to be replaced with measured values after a week of data:
+Splunk Free allows 500 MB/day. Measured from `license_usage.log` (5 steady days, 2026-10-05 to 10-09, the first full days after forwarders were in place). The estimates were written before any data existed:
 
-| Source | Est. MB/day |
-|---|---|
-| Omada | 10–50 |
-| Technitium (filtered) | 20–80 |
-| Linux + Proxmox | 20–50 |
-| dmz-edge | 5–50 |
-| Windows + Sysmon (Phase 4) | 100–250 (measured **~27** for three Windows hosts at idle, 2026-10-03; attacks and use add to it) |
-| **Total** | **~155–480** |
+| Source (index) | Estimated MB/day | Measured MB/day |
+|---|---|---|
+| Omada (`netfw`) | 10–50 | 10.3 |
+| Technitium, filtered (`dns`) | 20–80 | 11.5 |
+| Linux + Proxmox (`linux`) | 20–50 | 6.6 |
+| dmz-edge (`web`) | 5–50 | 0.6 |
+| Windows + Sysmon (`sysmon`, `wineventlog`), three hosts at idle | 100–250 | 36.1 (14.8 + 21.3) |
+| **Total** | **~155–480** | **~65** |
+
+**Verdict (2026-10-14): no more filtering needed.** Steady state was ~65 MB/day, 13% of the 500 MB cap, and ~29 MB/day without the Windows hosts (they were retired 2026-10-14). The peaks were all Windows build and teardown work, not steady state: 163 MB on 10-13 and 194 MB on 10-14 (`dc01` Sysmon alone was 148 MB on the day it was torn down). Even the worst day was 39% of the cap. Splunk Free blocks search only after 5 cap violations in a rolling 30 days, so a bad day is survivable, but attack emulation on Windows targets should be watched. Query: `index=_internal source=*license_usage.log* type=Usage | stats sum(b) by idx`.
+
+The current license is the 60-day Enterprise trial, which expires **2026-11-29**. After that the instance reverts to Free (no authentication, no native alerting). The detections are already scheduled reports, so they carry over. [`scripts/splunk-search.sh`](../../scripts/splunk-search.sh) is written to work without credentials.

@@ -33,7 +33,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 
 | Item | Placement | Evidence to finish it |
 |---|---|---|
-| [ ] **Next: license check.** The 7-day mark passed on 2026-10-08, so this is overdue | – | Measured MB/day per source vs. the budget in [siem.md](architecture/siem.md#license-budget). Decides whether the Free-tier switch needs more filtering |
+| [x] **License check** (2026-10-14, a week late) | – | ✅ Measured ~65 MB/day steady state against the 500 MB cap (~29 MB/day without Windows). Worst day was 194 MB, from the AD estate teardown. No more filtering needed. [Table](architecture/siem.md#license-budget). The Enterprise trial expires 2026-11-29 |
 | [x] **Splunk Enterprise** 10.4.4 (60-day trial → Free), VM `splunk` (151, was 210) at 10.12.30.20, cloned from template 9001 ([runbook](runbooks/deploy-splunk.md)) | darrow · 4 vCPU / 8 GiB / 150 GiB | T11 ✅, T12 ✅, T25 ✅, T26–T30 ✅ |
 | [x] Indexes, zone lookup, rsyslog intake (`homelab_base` app) | splunk | 7 indexes with retention. Zone lookup verified for one IP per VLAN + external. 514 intake tested |
 | [x] **Omada** remote syslog: gateway ACL events, controller DHCP, access point flows (household-filtered) | gateway, controller, AP | ✅ A kali → Management probe at 11:30:58 was indexed at 11:30:58 as `security → management`, Block. 0 household flows indexed |
