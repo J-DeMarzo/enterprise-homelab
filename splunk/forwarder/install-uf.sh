@@ -5,6 +5,8 @@
 #           technitium  Technitium DNS query logs -> index dns
 #           pve         Proxmox API access log (pveproxy) -> index linux
 #           caddy       Caddy JSON access logs (dmz-edge) -> index web
+#           auditd      auditd log + rules (lab target hosts) -> index linux
+#           dvwa        DVWA Apache access log (vuln-web) -> index web
 # From ops, without a URL (staged to a file: dpkg/apt would eat a script piped to bash -s):
 #   ssh <host> 'f=$(mktemp); cat >"$f"; sudo bash "$f" linux pve; rm -f "$f"' < install-uf.sh
 # On a Proxmox host, for an LXC:
@@ -109,6 +111,38 @@ EOF
 index = web
 sourcetype = caddy:access
 whitelist = \.log$
+EOF
+      ;;
+    auditd)
+      # Lab target hosts (linux-victim, vuln-web). Installs auditd with a small rule set
+      # (exec, identity/sudo file changes) and forwards the audit log. /var/log/audit
+      # is root-only, so read access is an ACL on the dir and files (new logs inherit it).
+      DEBIAN_FRONTEND=noninteractive apt-get install -y -qq auditd acl >/dev/null
+      cat > /etc/audit/rules.d/homelab.rules <<'EOF'
+-a always,exit -F arch=b64 -S execve -k exec
+-w /etc/passwd -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/sudoers -p wa -k sudoers
+-w /etc/sudoers.d -p wa -k sudoers
+-w /etc/ssh/sshd_config -p wa -k sshd_config
+EOF
+      augenrules --load >/dev/null || true
+      setfacl -m "u:$USER_UF:rx" -m "d:u:$USER_UF:r" /var/log/audit
+      setfacl -m "u:$USER_UF:r" /var/log/audit/audit.log*
+      cat >> "$APP/inputs.conf" <<'EOF'
+[monitor:///var/log/audit/audit.log]
+index = linux
+sourcetype = linux:audit
+EOF
+      ;;
+    dvwa)
+      # vuln-web: the DVWA container bind-mounts /var/log/dvwa as Apache's log dir
+      # (/opt/dvwa/compose.yml), so the real access.log is a readable host file.
+      [[ -d /var/log/dvwa ]] || { echo "/var/log/dvwa not found" >&2; exit 1; }
+      cat >> "$APP/inputs.conf" <<'EOF'
+[monitor:///var/log/dvwa/access.log]
+index = web
+sourcetype = apache:access
 EOF
       ;;
     *) echo "unknown role: $role" >&2; exit 2 ;;

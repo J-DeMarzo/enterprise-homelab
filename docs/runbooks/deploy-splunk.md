@@ -67,7 +67,7 @@ Run [`splunk/server/ufw-rules.sh`](../../splunk/server/ufw-rules.sh) as root. De
 Splunk 10 also listens on **0.0.0.0:5432** (bundled PostgreSQL) and 8089. Both stay closed to the network.
 
 ## 6b. Universal Forwarders
-Installer: [`splunk/forwarder/install-uf.sh`](../../splunk/forwarder/install-uf.sh). It downloads UF 10.4.4, verifies the SHA-512, and installs it with a random root-only admin credential. Roles: `linux` (journald → `linux`), `technitium` (query logs → `dns`), `pve` (Proxmox API access log → `linux`, read access by ACL), `caddy` (Caddy JSON access logs → `web`). Windows hosts have their own installer (below).
+Installer: [`splunk/forwarder/install-uf.sh`](../../splunk/forwarder/install-uf.sh). It downloads UF 10.4.4, verifies the SHA-512, and installs it with a random root-only admin credential. Roles: `linux` (journald → `linux`), `technitium` (query logs → `dns`), `pve` (Proxmox API access log → `linux`, read access by ACL), `caddy` (Caddy JSON access logs → `web`), `auditd` (installs auditd with a small rule set and forwards the audit log → `linux`, for the lab targets), `dvwa` (DVWA's Apache access log on `vuln-web` → `web`). Windows hosts have their own installer (below).
 
 From `ops`, for any host it can SSH to (all of them), copy the repo's script over. It's staged to a file first, because dpkg/apt would read the rest of a script piped into `bash -s`:
 ```bash
