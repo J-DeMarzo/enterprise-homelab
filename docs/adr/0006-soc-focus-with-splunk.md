@@ -30,3 +30,5 @@ Two SIEMs were considered:
 
 ## Update 2026-10-14
 The "Victims" decision above no longer holds as written. The first AD estate was built and then retired, and the [roadmap](../roadmap.md) no longer depends on any Active Directory: the near-term targets are Linux hosts and a standalone Windows 11. Active Directory is built independently of this lab, in a separate project, and is outside the roadmap. The decision to focus on SOC workflow evidence, and Splunk as the SIEM, is unchanged.
+
+Later the same day, target work was narrowed further to Linux and network: the standalone Windows 11 target and its cases are deferred to the roadmap's optional list, so the Windows license-expiry rebuild concern above does not apply until it returns.

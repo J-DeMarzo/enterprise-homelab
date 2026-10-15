@@ -51,18 +51,20 @@ No Active Directory in this phase. The SOC plan does not depend on any domain. A
 |---|---|---|
 | [x] **Sysmon** ([sysmon-modular](https://github.com/olafhartong/sysmon-modular), pinned) + Universal Forwarder, built on the first estate ([installer](../splunk/forwarder/install-uf-windows.ps1), [notes](architecture/siem.md#windows-specifics)) | – | ✅ A test DNS lookup, process and network connection from each host found in Splunk with fields and zones. About 27 MB/day for three hosts at idle, after fixing a Sysmon bug that dropped every DNS event and excluding the forwarder's own noise (first hour: ~670 MB/day of install churn). The installer works on any Windows host |
 | [x] First AD estate (DC + two Win11 clients, domain-joined), then retired | VLAN 40 | ✅ `dcdiag` passed, and Kerberos TGTs (4768), service tickets (4769) and logons (4624) for both clients were in Splunk from the moment of the join, with source IP and zone. Kept at `ad-lab-v1` |
-| [ ] **Standalone Windows target**: one workgroup Windows 11 on VLAN 40 with Sysmon + UF, installed with the existing installer | VLAN 40 | Process, network and DNS events from it in Splunk with fields and zone. Covers the host-level attacks in Phase 5 that don't need a domain |
-| [ ] **Golden templates** for the Linux and Windows targets, so a target can be rebuilt on a schedule (evaluation licenses expire, see [ADR 0006](adr/0006-soc-focus-with-splunk.md)) | – | Runbook plus one timed rebuild of each |
+| [ ] **Linux victim**: Ubuntu clone of template 9001 on VLAN 40 with UF (journald) and auditd, SSH exposed | VLAN 40 | Auth and auditd events from it in the `linux` index with fields and zone |
+| [ ] **Vulnerable web app**: DVWA or Juice Shop (pick one at build time) on VLAN 40 | VLAN 40 | Web access logs in Splunk with source IP and zone |
+| [ ] **Golden template** for the Linux targets, so a target can be rebuilt on a schedule (see [ADR 0006](adr/0006-soc-focus-with-splunk.md)) | – | Runbook plus one timed rebuild |
 
 ## Phase 5: SOC workflow evidence
 Each item is one emulated attack → [detection](../detections/) → [case write-up](investigations/). Ordered by what needs the least new infrastructure, so the first cases don't wait on Phase 4.
 - [ ] SSH brute force against a Linux host (T1110.001)
 - [ ] DNS tunneling / exfiltration (T1071.004). The [detection](../detections/exfiltration-dns-tunneling.spl) exists, so this needs the emulation run and the write-up
-- [ ] Persistence via scheduled task (T1053.005), needs the standalone Windows target
-- [ ] LSASS credential dumping (T1003.001), needs the standalone Windows target
+- [ ] Web attack against the vulnerable app, e.g. SQL injection (T1190)
+- [ ] Network scan and cross-VLAN probe (T1046), detected from the Omada gateway ACL logs
 - [ ] Bonus: [Boss of the SOC](https://github.com/splunk/botsv3) dataset investigations. This needs no lab targets, so it can fill the gaps while targets are being built
 
 ## Later / optional
+- **Standalone Windows 11 target** (workgroup, Sysmon + UF; the [installer](../splunk/forwarder/install-uf-windows.ps1) is proven) with a Windows golden template, enabling scheduled-task persistence (T1053.005) and LSASS credential dumping (T1003.001). Deferred 2026-10-14 to keep target work on Linux and network
 - Case management (TheHive or DFIR-IRIS) and SOAR (Shuffle)
 - Network security monitoring (Zeek / Security Onion)
 - **Proxmox Backup Server** on sefi (`pax`), for backups and restore tests

@@ -40,7 +40,7 @@ flowchart LR
 | 10 | Internal | Firewall denies, DHCP, DNS **security signals only** | None (household devices) |
 | 20 | IoT | Firewall denies, DHCP, **full DNS** | None (can't install agents) |
 | 30 | Servers | Splunk `_internal`, homepage, bots, fantasy | UF on homepage, bots, fantasy |
-| 40 | Security | Kali; Windows 11 and Linux targets with Sysmon (the first AD estate was retired 2026-10-14; a standalone Windows target is planned) | UF (+ Sysmon) |
+| 40 | Security | Kali; Linux targets and a vulnerable web app (the first AD estate was retired 2026-10-14; a standalone Windows target is deferred) | UF (+ Sysmon on Windows) |
 | 50 | DMZ | `dmz-edge` Caddy access logs (`web`), cloudflared and OS logs (`linux`, journald) | UF on dmz-edge |
 | 99 | Guest | Firewall denies, DHCP | None |
 
