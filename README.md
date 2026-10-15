@@ -2,7 +2,7 @@
 
 A homelab built as a **small enterprise SOC environment**: segmented networks, Splunk as the SIEM, Linux attack targets, and an isolated attack VLAN. It exists to practice and demonstrate security operations: emulate an attack, detect it, investigate it, write it up.
 
-> **Status:** infrastructure and documentation are in place. Lab isolation and Splunk are built; the attack targets and first detections-to-case write-ups are next ([roadmap](docs/roadmap.md)). Investigations will appear below as they're completed.
+> **Status:** infrastructure and documentation are in place. Lab isolation, Splunk and the Linux attack targets are built; the first attack-to-case write-ups are next ([roadmap](docs/roadmap.md)). Investigations will appear below as they're completed.
 
 ## SOC workflow
 
@@ -71,7 +71,7 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 | 1 | Hygiene: guest metadata, tags, admin host in the management zone | ✅ Done |
 | 2 | Safe to attack: default-deny between VLANs, [tested](docs/architecture/firewall-rules.md#test-results) | ✅ Done |
 | 3 | Visibility: Splunk plus log sources, [license budget measured](docs/architecture/siem.md#license-budget) | ✅ Done |
-| 4 | Targets: Linux hosts and a vulnerable web app (network/Linux focus, no AD, Windows deferred) | ♻️ Sysmon + forwarder proven; Linux victim, web app and template planned |
+| 4 | Targets: Linux hosts and a vulnerable web app (network/Linux focus, no AD, Windows deferred) | ✅ Done: `linux-victim` and `vuln-web` with auditd + forwarders, scripted rebuild. Windows target deferred |
 | 5 | SOC workflow evidence: emulate → detect → investigate → write up | 🗓️ Planned |
 
 Full detail: [docs/roadmap.md](docs/roadmap.md)
