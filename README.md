@@ -76,8 +76,6 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 
 Full detail: [docs/roadmap.md](docs/roadmap.md)
 
-**Related project:** [sc300-identity-lab](https://github.com/J-DeMarzo/sc300-identity-lab), my identity and access track (Active Directory, Entra ID, Microsoft SC-300 exam lab), kept in its own repo with its own roadmap.
-
 ## Repository layout
 
 ```

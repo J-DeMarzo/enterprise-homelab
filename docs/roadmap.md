@@ -45,7 +45,7 @@ Design: [siem.md](architecture/siem.md) · [ADR 0007](adr/0007-splunk-topology-a
 | [x] **Alert queue** + first detections (new device on Management, denied probes toward Management, new IoT domain, DNS tunneling, web probing) | – | ✅ All 5 fired on their scheduled runs against recorded tests ([detections](../detections/README.md)). The Management test exposed a blind spot (static IPs leave no DHCP trace), and the detection gained a DNS-client signal |
 
 ## Phase 4: Something worth defending
-No Active Directory in this phase. The SOC plan does not depend on any domain. Active Directory is outside this roadmap: my identity work (AD, Entra ID, SC-300) lives in a separate project, [sc300-identity-lab](https://github.com/J-DeMarzo/sc300-identity-lab). The first AD estate (`ad.demarzo.lab`: `dc01`, `ws01`, `ws02`, built 2026-10-02/03) was retired 2026-10-14. Its build, runbooks and scripts are kept at the git tag [`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1), and what it proved is recorded below.
+No Active Directory in this phase. The SOC plan does not depend on any domain. The first AD estate (`ad.demarzo.lab`: `dc01`, `ws01`, `ws02`, built 2026-10-02/03) was retired 2026-10-14. Its build, runbooks and scripts are kept at the git tag [`ad-lab-v1`](https://github.com/J-DeMarzo/enterprise-homelab/tree/ad-lab-v1), and what it proved is recorded below.
 
 | Item | Placement | Evidence to finish it |
 |---|---|---|
