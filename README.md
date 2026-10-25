@@ -2,23 +2,13 @@
 
 A homelab built as a **small enterprise SOC environment**: segmented networks, Splunk as the SIEM, Linux attack targets, and an isolated attack VLAN. It exists to practice and demonstrate security operations: emulate an attack, detect it, investigate it, write it up.
 
-> **Status:** infrastructure and documentation are in place. Lab isolation, Splunk and the Linux attack targets are built; the first attack-to-case write-ups are next ([roadmap](docs/roadmap.md)). Investigations will appear below as they're completed.
+**The case work lives in [soc-casework](https://github.com/J-DeMarzo/soc-casework).** This repo is the environment those cases run in, including the Splunk config and the detections they link to ([ADR 0011](docs/adr/0011-soc-casework-own-repo.md)).
 
-## SOC workflow
-
-```mermaid
-flowchart LR
-    A["Emulate<br/>Kali · Atomic Red Team"] --> B["Collect<br/>Sysmon · Windows events<br/>DNS · firewall · Linux"]
-    B --> C["Detect<br/>SPL detections →<br/>alert queue"]
-    C --> D["Investigate<br/>triage · scope · timeline"]
-    D --> E["Document<br/>case write-up<br/>ATT&CK mapping"]
-    E --> F["Improve<br/>tune / add detections"]
-    F -.-> C
-```
+> **Status:** infrastructure and documentation are in place. Lab isolation, Splunk and the Linux attack targets are built, and the first case write-ups are under way in soc-casework.
 
 | Evidence | Where |
 |---|---|
-| Investigations (case write-ups) | [`docs/investigations/`](docs/investigations/) |
+| Investigations (case write-ups) | [soc-casework](https://github.com/J-DeMarzo/soc-casework) |
 | SPL detections, each tested against an emulated attack | [`detections/`](detections/) |
 | Lab isolation rules, with before/after test results | [`docs/architecture/firewall-rules.md`](docs/architecture/firewall-rules.md) |
 | SIEM design and config as code | [`docs/architecture/siem.md`](docs/architecture/siem.md) · [`splunk/`](splunk/) |
@@ -72,7 +62,7 @@ Detail: [overview](docs/architecture/overview.md) · [network](docs/architecture
 | 2 | Safe to attack: default-deny between VLANs, [tested](docs/architecture/firewall-rules.md#test-results) | ✅ Done |
 | 3 | Visibility: Splunk plus log sources, [license budget measured](docs/architecture/siem.md#license-budget) | ✅ Done |
 | 4 | Targets: Linux hosts and a vulnerable web app (network/Linux focus, no AD, Windows deferred) | ✅ Done: `linux-victim` and `vuln-web` with auditd + forwarders, scripted rebuild. Windows target deferred |
-| 5 | SOC workflow evidence: emulate → detect → investigate → write up | 🗓️ Planned |
+| 5 | SOC workflow evidence: emulate → detect → investigate → write up | ➡️ Moved to [soc-casework](https://github.com/J-DeMarzo/soc-casework/blob/main/roadmap.md) |
 
 Full detail: [docs/roadmap.md](docs/roadmap.md)
 
@@ -80,7 +70,6 @@ Full detail: [docs/roadmap.md](docs/roadmap.md)
 
 ```
 docs/
-  investigations/  case write-ups (+ template)
   architecture/    how the lab is built, incl. firewall rules
   adr/             why it is built that way
   runbooks/        operational procedures

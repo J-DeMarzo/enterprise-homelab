@@ -56,12 +56,7 @@ No Active Directory in this phase. The SOC plan does not depend on any domain. T
 | [x] **Scripted rebuild** for the Linux targets, so a target can be rebuilt on demand ([`build-target.sh`](../scripts/build-target.sh), [runbook](runbooks/rebuild-targets.md)). Clones template 9001 and provisions after the clone, so the forwarder's identity and version stay out of the image | – | ✅ Timed rebuild of each on throwaway VMs, 2026-10-14: victim 1m48s, web 2m19s. Both reached Splunk (`linux:audit`, journald, `apache:access`) and got a `Clean` snapshot. The throwaways were destroyed |
 
 ## Phase 5: SOC workflow evidence
-Each item is one emulated attack → [detection](../detections/) → [case write-up](investigations/). Ordered by what needs the least new infrastructure, so the first cases don't wait on Phase 4.
-- [ ] SSH brute force against a Linux host (T1110.001)
-- [ ] DNS tunneling / exfiltration (T1071.004). The [detection](../detections/exfiltration-dns-tunneling.spl) exists, so this needs the emulation run and the write-up
-- [ ] Web attack against the vulnerable app, e.g. SQL injection (T1190)
-- [ ] Network scan and cross-VLAN probe (T1046), detected from the Omada gateway ACL logs
-- [ ] Bonus: [Boss of the SOC](https://github.com/splunk/botsv3) dataset investigations. This needs no lab targets, so it can fill the gaps while targets are being built
+Moved to its own repo: **[soc-casework](https://github.com/J-DeMarzo/soc-casework)**, which has its own [roadmap](https://github.com/J-DeMarzo/soc-casework/blob/main/roadmap.md) ([ADR 0011](adr/0011-soc-casework-own-repo.md)). Work a case needs on this side is still tracked and committed here: a new [detection](../detections/), log source, or target.
 
 ## Later / optional
 - **Standalone Windows 11 target** (workgroup, Sysmon + UF; the [installer](../splunk/forwarder/install-uf-windows.ps1) is proven) with a Windows golden template, enabling scheduled-task persistence (T1053.005) and LSASS credential dumping (T1003.001). Deferred 2026-10-14 to keep target work on Linux and network

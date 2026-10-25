@@ -16,6 +16,7 @@ ADRs 0001–0004 were written after the fact, describing decisions already in pl
 | [0008](0008-agent-workstation-in-management-bots-scoped.md) | Agent workstation moves to Management; bots isolated with a scoped token | Accepted |
 | [0009](0009-least-privilege-proxmox-api-identities.md) | Least-privilege Proxmox API identities | Accepted |
 | [0010](0010-local-llm-host.md) | Local LLM host: CPU-only Ollama in Servers, reachable only from ops | Accepted |
+| [0011](0011-soc-casework-own-repo.md) | SOC case work moves to its own repo; Splunk and detections stay here | Accepted |
 
 ## Template
 

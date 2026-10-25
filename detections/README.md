@@ -24,7 +24,7 @@ Every hit carries the same fields: `detection`, `severity`, `attack`, `summary`,
 
 **Baselines** ([`baselines/`](baselines/)) are daily searches that build the "known" lists some detections compare against. They stop an hour back, so a new device or domain is never learned before the detection has seen it. The lookups they write stay on the server, out of the repo.
 
-A detection is added here only once it has **fired against a recorded test**. Its emulated-attack case write-up in [`docs/investigations/`](../docs/investigations/) follows in Phase 5.
+A detection is added here only once it has **fired against a recorded test**. Its emulated-attack case write-up goes in [soc-casework](https://github.com/J-DeMarzo/soc-casework), which links back here.
 
 | Detection | ATT&CK | Tested (2026-10-01) | Case |
 |---|---|---|---|
