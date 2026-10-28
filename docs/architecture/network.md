@@ -35,6 +35,7 @@ Proxmox guests use VLANs 5 (untagged, native), 30 (`tag=30`), and 40 (`tag=40`).
 | `10.12.30.20` | splunk (SIEM, static) |
 | `10.12.30.30` | fantasy (fantasy-app dev/runtime, LXC 201, static) |
 | `10.12.30.40` | llm (Ollama, LXC 100, static) |
+| `10.12.30.51` | godseye (God's Eye View, LXC 202, static) |
 | `10.12.50.10` | dmz-edge (Caddy + cloudflared for demarzo.dev) |
 | `.100+` | DHCP leases (observed) |
 

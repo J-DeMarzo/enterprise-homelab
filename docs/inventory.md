@@ -20,6 +20,7 @@
 | 151 | splunk | VM | TheRising/darrow | running | 4 | 8 GiB | 30 | 10.12.30.20 | infra, net-svc |
 | 200 | dns1 | LXC | TheRising/sevro | running | 1 | 512 MiB | 5 | 10.12.5.53 | infra, net-mgmt |
 | 201 | fantasy | LXC | TheRising/sevro | running | 2 | 4 GiB | 30 | 10.12.30.30 | app, net-svc |
+| 202 | godseye | LXC | TheRising/sevro | running | 2 | 3 GiB | 30 | 10.12.30.51 | app, net-svc |
 | 250 | kali | VM | TheRising/sevro | stopped | 4 | 4 GiB | 40 | dhcp | lab, net-lab |
 | 300 | homepage | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.100 (dhcp) | app, net-svc |
 | 301 | bots | LXC | TheRising/ragnar | running | 2 | 4 GiB | 30 | 10.12.30.101 (dhcp) | admin, net-svc |
@@ -39,7 +40,7 @@
 | Sefi | ISO | dir | sefi | 55 GiB | 5455 GiB |
 | Sefi | Snippets | dir | sefi | 55 GiB | 5455 GiB |
 | Sefi | Templates | dir | sefi | 55 GiB | 5455 GiB |
-| Sefi | local-zfs | zfspool | sefi | 8 GiB | 448 GiB |
+| Sefi | local-zfs | zfspool | sefi | 7 GiB | 448 GiB |
 | Sefi | pax | zfspool | sefi | 56 GiB | 5456 GiB |
 | TheRising | ISO | nfs | shared | 55 GiB | 5455 GiB |
 | TheRising | Snippets | nfs | shared | 55 GiB | 5455 GiB |
@@ -47,4 +48,4 @@
 | TheRising | VM-Templates | nfs | shared | 55 GiB | 5455 GiB |
 | TheRising | fast-local | zfspool | darrow | 191 GiB | 899 GiB |
 | TheRising | fast-local | zfspool | ragnar | 19 GiB | 450 GiB |
-| TheRising | fast-local | zfspool | sevro | 44 GiB | 450 GiB |
+| TheRising | fast-local | zfspool | sevro | 45 GiB | 450 GiB |

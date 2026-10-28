@@ -42,6 +42,7 @@ Found and fixed on 2026-10-01: `30.12.10.in-addr.arpa` (VLAN 30 reverse lookups)
 | splunk | A | 10.12.30.20 | ✅ |
 | fantasy | A | 10.12.30.30 | ✅ |
 | llm | A | 10.12.30.40 | ✅ |
+| godseye | A | 10.12.30.51 | ✅ |
 | homepage | A | 10.12.30.100 | (PTR is `dashboard`) |
 | dashboard | A | 10.12.30.100 | ✅ |
 | bots | A | 10.12.30.101 | ✅ |
