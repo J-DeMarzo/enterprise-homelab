@@ -33,8 +33,10 @@ A detection is added here only once it has **fired against a recorded test**. It
 | [IoT device resolves a never-seen domain](command-and-control-new-iot-domain.spl) | T1071 | ✅ Temporary LXC on IoT resolved 2 domains no IoT device had used: **low** alert naming both. In learning mode until the 7-day review | Phase 5 |
 | [DNS tunneling](exfiltration-dns-tunneling.spl) | T1071.004 | ✅ 100 random 40-character labels under `exfil-test.invalid` from kali: **high** alert. No false positives in the previous 24 h | Phase 5 |
 | [Web probing against demarzo.dev](reconnaissance-web-probing.spl) | T1595.003 | ✅ 20 scanner paths from ops through Cloudflare: **low** alert. Real internet scanners trigger it too | Phase 5 |
+| [SSH brute force](credential-access-ssh-brute-force.spl) | T1110.001, T1078.003 | ✅ (2026-10-29) Hydra from kali against linux-victim: 224 failures with no login gave a **medium** alert, and 119 failures then a login gave a **high** one, each on the next scheduled run | [CASE-2026-001](https://github.com/J-DeMarzo/soc-casework/blob/main/cases/2026-10-28-ssh-brute-force/README.md) |
 
 Tuning notes from building them on real data (24 h, 15-minute buckets):
 - **Probes:** "10+ blocked events" would have fired on a phone retrying DNS-over-TLS (:853) to dns1/dns2. The rule needs **5 ports or 3 hosts** instead.
 - **Tunneling:** the busiest legitimate pattern (an IoT device under `apple.com`) peaked at 37 unique names with 12-character labels. The threshold is 50 names averaging 30+ characters.
 - **New IoT domain:** IoT still meets ~50 new base domains a day while the baseline is young, so it's one low-severity alert per device per run. The volume gets reviewed at the 7-day license check.
+- **SSH brute force:** besides `Failed password`, sshd logs PAM `authentication failure` lines for the same attempts, so the rule counts only `Failed password`. linux-victim's 24 h baseline had no failed passwords at all, because admin logins are key-based. So 10 in a window is already a strong signal.
