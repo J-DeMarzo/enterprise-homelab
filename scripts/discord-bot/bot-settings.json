@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_discord_discord__reply",
+      "mcp__plugin_discord_discord__react",
+      "mcp__plugin_discord_discord__edit_message",
+      "mcp__plugin_discord_discord__fetch_messages",
+      "mcp__proxmox__list_targets",
+      "mcp__proxmox__get_nodes",
+      "mcp__proxmox__get_node_status",
+      "mcp__proxmox__list_bridges",
+      "mcp__proxmox__get_storage",
+      "mcp__proxmox__get_cluster_status",
+      "mcp__proxmox__list_jobs",
+      "mcp__proxmox__get_job",
+      "mcp__proxmox__poll_job",
+      "mcp__proxmox__get_vms",
+      "mcp__proxmox__get_vm_config",
+      "mcp__proxmox__get_next_vmid",
+      "mcp__proxmox__get_vm_ip_addresses",
+      "mcp__proxmox__get_containers",
+      "mcp__proxmox__get_container_config",
+      "mcp__proxmox__get_container_ip",
+      "mcp__proxmox__list_snapshots",
+      "mcp__proxmox__list_isos",
+      "mcp__proxmox__list_templates",
+      "mcp__proxmox__list_backups",
+      "mcp__proxmox__get_node_syslog",
+      "mcp__proxmox__get_task_log",
+      "mcp__proxmox__get_cluster_log",
+      "mcp__proxmox__get_node_firewall_log",
+      "mcp__proxmox__get_guest_firewall_log",
+      "mcp__proxmox__start_vm",
+      "mcp__proxmox__start_container",
+      "mcp__proxmox__create_snapshot"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "mcp__plugin_discord_discord__download_attachment"
+    ],
+    "defaultMode": "default"
+  },
+  "enabledPlugins": {
+    "discord@claude-plugins-official": true
+  },
+  "disableClaudeAiConnectors": true
+}

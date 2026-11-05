@@ -1,27 +1,23 @@
 # Runbook: Discord Proxmox bot
 
-**What:** Claude Code in a tmux session on `bots` (LXC 301), with the Discord channel plugin and the `proxmox` MCP server. Requests arrive as Discord messages. Its Proxmox access is the scoped `discord-bot@pve` token ([ADR 0009](../adr/0009-least-privilege-proxmox-api-identities.md)).
-**When:** the bot isn't answering, you got a health alert DM, or you're rebuilding `bots`.
+**What:** Claude Code in a tmux session on `bots` (LXC 301), running as the unprivileged user `discord-bot`, with the Discord channel plugin and the `proxmox` MCP server. Requests arrive as Discord messages. Its Proxmox access is the scoped `discord-bot@pve` token ([ADR 0009](../adr/0009-least-privilege-proxmox-api-identities.md)). Why it's set up this way: [ADR 0012](../adr/0012-discord-bot-unprivileged.md).
+**When:** the bot isn't answering, you got a health alert DM, the login is due for renewal, or you're rebuilding `bots`.
 
 ## How it runs
 
-| Piece | Where on `bots` | What it does |
+Everything lives in `/home/discord-bot`, mode 750. The `demarzo` admin login holds no bot credentials.
+
+| Piece | Where | What it does |
 |---|---|---|
-| `claude-discord.service` (user unit) | `~/.config/systemd/user/` | Waits for DNS, then starts `claude --channels plugin:discord@claude-plugins-official` in tmux (socket `claude-discord`), from `~/proxmox-bot` |
+| `claude-discord.service` (user unit) | `~/.config/systemd/user/` | Waits for DNS, then starts Claude in tmux (socket `claude-discord`), from `~/proxmox-bot` |
 | `claude-discord-health.timer` + `.service` (user units) | `~/.config/systemd/user/` | Runs the health check 5 minutes after boot, then every 5 minutes |
 | `claude-discord-health` | `~/.local/bin/` | The health check, below |
-| `~/.claude/.credentials.json` | | The Claude login. It expires after about 4 weeks and needs a browser to renew |
-| `~/.claude/channels/discord/` | | Discord bot token (`.env`) and sender allowlist (`access.json`) |
-| `~/.config/proxmox-mcp/config.json` | | Proxmox targets and token |
+| `CLAUDE.md`, `.claude/settings.json` | `~/proxmox-bot/` | The bot's rules and tool permissions |
+| `.credentials.json` | `~/.claude/` | The Claude login. It lasts about 4 weeks and needs a browser to renew |
+| `.env`, `access.json` | `~/.claude/channels/discord/` | Discord bot token and sender allowlist |
+| `config.json` | `~/.config/proxmox-mcp/` | Proxmox targets and token |
 
-Files: [`scripts/discord-bot/`](../../scripts/discord-bot/). Lingering is on for `demarzo`, so the units run with no one logged in.
-
-## Why `active (running)` doesn't mean healthy
-
-`systemctl` only sees the tmux server. Claude keeps running inside it even when the bot can't work, and `Restart=on-failure` never fires. Two failures look identical from systemd, and both happened at once on 2026-11-05, after the bot had been silent for 19 days:
-
-- **MCP servers don't retry.** They get one attempt at startup. On 2026-10-17 `ragnar` rebooted, and the bot started at 22:38:22, before the network was online at 22:38:55. Both servers failed on DNS and never came back. The old `After=network-online.target` did nothing, because that target only exists in the system manager. The unit now waits for DNS in `ExecStartPre`.
-- **The login expires.** A running session can't recover once it lapses, and a restart doesn't help.
+Files: [`scripts/discord-bot/`](../../scripts/discord-bot/). Lingering is on for `discord-bot`, so the units run with no one logged in.
 
 ## What the bot can reach
 
@@ -29,15 +25,21 @@ The bot takes instructions from chat, so it gets only what its job needs. Proxmo
 
 | Limit | How | Check |
 |---|---|---|
-| No shell, file or web tools | `--tools ''` in the unit, so the model doesn't have them. `Bash`, `Edit`, `Write`, `NotebookEdit`, `WebFetch`, `WebSearch` and `Agent` are also denied in `~/proxmox-bot/.claude/settings.json` | The session's tool list |
-| No sudo, even though the user has it | `NoNewPrivileges=yes` in the unit applies to the whole process tree | `grep NoNewPrivs /proc/<pid>/status` shows `1` |
-| No Gmail, Drive, Calendar, Indeed or Docs | `"disableClaudeAiConnectors": true` in the same settings file. A claude.ai login brings these into the session otherwise | Only `mcp-logs-plugin-discord-discord` and `mcp-logs-proxmox` get a log for the session |
-| No Discord attachments | `download_attachment` denied in the same settings file | |
-| No SSH keys or GitHub login on the host | Removed | `ls ~/.ssh` shows only `authorized_keys` |
+| No sudo, no access to admin files, no SSH in | Dedicated user, not in `sudo`, password locked, no `authorized_keys`. `NoNewPrivileges=yes` also blocks setuid programs for the whole process tree | `grep NoNewPrivs /proc/<pid>/status` shows `1` |
+| No shell, file or web tools | `--tools ''` in the unit, so the model doesn't have them. `Bash`, `Edit`, `Write`, `NotebookEdit`, `WebFetch`, `WebSearch` and `Agent` are also denied in the settings file | Ask the bot from its terminal |
+| No Gmail, Drive, Calendar or other claude.ai connectors | `"disableClaudeAiConnectors": true` in the settings file. A claude.ai login brings them into the session otherwise | Only `mcp-logs-plugin-discord-discord` and `mcp-logs-proxmox` exist under `~/.cache/claude-cli-nodejs/` |
+| No Discord attachments | `download_attachment` denied in the settings file | |
 
 **Don't deny `Read` in the settings file.** It stops `CLAUDE.md` from loading, and with it the bot's safety rules. The pane warns `Instruction file not loaded`.
 
-**`claude setup-token` doesn't work here.** Channels refuse that token: the pane says `Channels are not currently available`, while the MCP servers still start and hold a Discord connection, so the bot looks healthy and drops every message. Channels need a claude.ai login or a Console API key.
+**Don't use `claude setup-token`.** Channels refuse that token: the pane says `Channels are not currently available`, while the MCP servers still start and hold a Discord connection, so the bot looks healthy and drops every message. Channels need a claude.ai login or a Console API key.
+
+## Why `active (running)` doesn't mean healthy
+
+`systemctl` only sees the tmux server. Claude keeps running inside it even when the bot can't work, and `Restart=on-failure` never fires. Two failures look identical from systemd, and both had happened by 2026-11-05, after the bot had been silent for 19 days:
+
+- **MCP servers don't retry.** They get one attempt at startup. On 2026-10-17 `ragnar` rebooted, and the bot started at 22:38:22, before the network was online at 22:38:55. Both servers failed on DNS and never came back. The old `After=network-online.target` did nothing, because that target only exists in the system manager. The unit now waits for DNS in `ExecStartPre`.
+- **The login expires.** A running session can't recover once it lapses, and a restart doesn't help.
 
 ## Health check
 
@@ -58,33 +60,51 @@ Alerts are Discord DMs from the bot to the allowlisted user, repeated every 6 ho
 
 ## Troubleshooting
 
-Run these on `bots`:
+From `ops`, run `ssh bots`, then `sudo -iu discord-bot`:
 
 ```bash
 journalctl --user -u claude-discord-health -n 20      # what the check last found
-~/.npm-global/bin/claude auth status                  # login state and expiry
+claude auth status                                    # login state and expiry
 tmux -L claude-discord capture-pane -p -t claude-discord    # the bot's screen
 pstree -a $(tmux -L claude-discord list-panes -F '#{pane_pid}')    # expect bun server.ts and proxmox-mcp-plus
-ls -t ~/.cache/claude-cli-nodejs/-home-demarzo-proxmox-bot/mcp-logs-plugin-discord-discord | head -1    # newest plugin log
 ```
 
-**Renew the login,** from `ops`:
+**Renew the login,** from `ops`, in your own terminal:
 
 ```bash
-ssh -t bots '~/.npm-global/bin/claude auth login'
-ssh bots 'systemctl --user restart claude-discord'
+ssh -t bots 'sudo -u discord-bot -H env PATH=/home/discord-bot/.npm-global/bin:/usr/bin:/bin claude auth login'
+ssh bots 'sudo -iu discord-bot systemctl --user restart claude-discord'
 ```
 
 To work on the bot without the check restarting it, stop the service: `systemctl --user stop claude-discord`. To see the screen live, use `tmux -L claude-discord attach`, and detach with `Ctrl-b d`.
 
 ## Rebuild
 
-From `scripts/discord-bot/`, after Claude Code, Bun and uv are installed and the plugin is configured:
+As `demarzo` on `bots`, create the user:
 
 ```bash
-scp claude-discord.service claude-discord-health.service claude-discord-health.timer bots:.config/systemd/user/
-scp health.py bots:.local/bin/claude-discord-health
-ssh bots 'chmod 755 ~/.local/bin/claude-discord-health && sudo loginctl enable-linger demarzo && systemctl --user daemon-reload && systemctl --user enable --now claude-discord.service claude-discord-health.timer'
+sudo useradd -m -s /bin/bash -c "Discord Proxmox bot" discord-bot
+sudo loginctl enable-linger discord-bot
+sudo chmod 750 /home/discord-bot
+printf '%s\n' 'export XDG_RUNTIME_DIR=/run/user/$(id -u)' 'export PATH=$HOME/.npm-global/bin:$HOME/.bun/bin:$HOME/.local/bin:$PATH' | sudo -u discord-bot tee -a /home/discord-bot/.profile
 ```
 
-Check: send the bot a message, then `systemctl --user start claude-discord-health` and look for `healthy` in the journal.
+As `discord-bot`, install Claude Code (npm prefix `~/.npm-global`), Bun and uv, then install and configure the plugin and the MCP server:
+
+1. `claude auth login`, then in a session: `/plugin install discord@claude-plugins-official`, `/discord:configure <token>`, `/discord:access pair <code>`, and `/discord:access policy allowlist`.
+2. Write `~/.config/proxmox-mcp/config.json` (mode 600) with the `discord-bot@pve` token, and add the server: `claude mcp add -s user -e PROXMOX_MCP_CONFIG=$HOME/.config/proxmox-mcp/config.json proxmox -- $HOME/.local/bin/uvx proxmox-mcp-plus`.
+
+Then copy the files from `scripts/discord-bot/` to these paths:
+
+| File | Goes to | Mode |
+|---|---|---|
+| `bot-CLAUDE.md` | `~/proxmox-bot/CLAUDE.md` | 644 |
+| `bot-settings.json` | `~/proxmox-bot/.claude/settings.json` | 644 |
+| `claude-discord.service`, `claude-discord-health.service`, `claude-discord-health.timer` | `~/.config/systemd/user/` | 644 |
+| `health.py` | `~/.local/bin/claude-discord-health` | 755 |
+
+```bash
+systemctl --user daemon-reload && systemctl --user enable --now claude-discord.service claude-discord-health.timer
+```
+
+Check: the plugin log says `Channel notifications registered`, the bot answers a Discord message, and `systemctl --user start claude-discord-health` logs `healthy`.

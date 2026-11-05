@@ -32,6 +32,10 @@ FAILS_BEFORE_RESTART = 2
 RESTART_COOLDOWN = 30 * 60
 REALERT = 6 * 3600
 LOGIN_WARN_DAYS = 3
+RENEW = (
+    "On ops, run: `ssh -t bots 'sudo -u discord-bot -H "
+    "env PATH=/home/discord-bot/.npm-global/bin:/usr/bin:/bin claude auth login'`."
+)
 API = "https://discord.com/api/v10"
 
 
@@ -85,17 +89,14 @@ def login_problem():
         return "login-unknown", "can't read the Claude login state (`claude auth status` failed)."
     if not status.get("loggedIn"):
         return "login-expired", (
-            "Claude is logged out, so the bot can't answer. On ops, run: "
-            "`ssh -t bots '~/.npm-global/bin/claude auth login'`, "
-            "then `systemctl --user restart claude-discord` on bots."
+            f"Claude is logged out, so the bot can't answer. {RENEW} Then restart the bot (see the runbook)."
         )
     expires = status.get("loginExpiresAt")
     if expires:
         left = datetime.fromisoformat(expires.replace("Z", "+00:00")).timestamp() - time.time()
         if left < LOGIN_WARN_DAYS * 86400:
             return "login-expiring", (
-                f"the Claude login expires in {left / 3600:.0f} hours. On ops, run: "
-                "`ssh -t bots '~/.npm-global/bin/claude auth login'`."
+                f"the Claude login expires in {left / 3600:.0f} hours. {RENEW}"
             )
     return None
 

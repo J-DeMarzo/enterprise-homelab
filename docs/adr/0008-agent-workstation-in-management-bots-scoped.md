@@ -19,7 +19,7 @@ That caused three problems:
 5. **No new ACLs.** Management → all zones is already allowed, so `ops` reaches `fantasy`, `bots`, and everything else without changes.
 
 ## Consequences
-- ✅ No host outside Management holds a credential that can change Proxmox configuration. A compromised or prompt-injected bot can at worst power-cycle or snapshot guests. *Evidence:* a config write with the bot's token returns `403 Permission check failed`, even after the request is approved in Discord.
+- ✅ No host outside Management holds a credential that can change Proxmox configuration. A compromised or prompt-injected bot can at worst power-cycle or snapshot guests. *Evidence:* a config write with the bot's token returns `403 Permission check failed`, even after the request is approved in Discord. *Correction, 2026-11-05:* this held for Proxmox only. The bot also had sudo on its host and the owner's claude.ai connectors, both since removed ([ADR 0012](0012-discord-bot-unprivileged.md)).
 - ✅ Admin tasks that were blocked from Servers now work from `ops` without exceptions (T31–T35).
 - ✅ The Servers → Management exceptions shrink to rule 7 for `bots` and `homepage`, port 8006 only. Splunk's host firewall no longer accepts SSH from Servers (T37).
 - ❌ `ops` is now the highest-value host in the lab: a Proxmox token (PVEAdmin at first, cut down to `OpsAgent` the same day, [ADR 0009](0009-least-privilege-proxmox-api-identities.md)), a GitHub token, and SSH keys for `fantasy` and `dmz-edge`. Mitigations: key-only SSH, Management is reachable only from Management and the admin desktop, and the scoped token role.
