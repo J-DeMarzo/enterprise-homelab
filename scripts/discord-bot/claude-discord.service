@@ -8,11 +8,14 @@ Type=forking
 WorkingDirectory=%h/proxmox-bot
 Environment=PATH=%h/.npm-global/bin:%h/.bun/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 Environment=MCP_TIMEOUT=60000
+NoNewPrivileges=yes
 # Claude's MCP servers fail once at startup and are never retried, so a start
 # before DNS works leaves a bot that looks alive but can't hear Discord.
 # getent exits non-zero unless every name resolves.
 ExecStartPre=/bin/sh -c 'until getent hosts discord.com pypi.org >/dev/null; do sleep 2; done'
-ExecStart=/usr/bin/tmux -L claude-discord new-session -d -s claude-discord "claude --channels plugin:discord@claude-plugins-official"
+# --tools '' removes every built-in tool (shell, files, web). The bot only needs
+# its MCP tools, and the model can't call a tool it doesn't have.
+ExecStart=/usr/bin/tmux -L claude-discord new-session -d -s claude-discord "claude --tools '' --channels plugin:discord@claude-plugins-official"
 ExecStop=/usr/bin/tmux -L claude-discord kill-session -t claude-discord
 TimeoutStartSec=10min
 Restart=on-failure

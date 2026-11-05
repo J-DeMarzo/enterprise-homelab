@@ -23,6 +23,22 @@ Files: [`scripts/discord-bot/`](../../scripts/discord-bot/). Lingering is on for
 - **MCP servers don't retry.** They get one attempt at startup. On 2026-10-17 `ragnar` rebooted, and the bot started at 22:38:22, before the network was online at 22:38:55. Both servers failed on DNS and never came back. The old `After=network-online.target` did nothing, because that target only exists in the system manager. The unit now waits for DNS in `ExecStartPre`.
 - **The login expires.** A running session can't recover once it lapses, and a restart doesn't help.
 
+## What the bot can reach
+
+The bot takes instructions from chat, so it gets only what its job needs. Proxmox permissions are enforced by the token, and these limits cover the host and the account:
+
+| Limit | How | Check |
+|---|---|---|
+| No shell, file or web tools | `--tools ''` in the unit, so the model doesn't have them. `Bash`, `Edit`, `Write`, `NotebookEdit`, `WebFetch`, `WebSearch` and `Agent` are also denied in `~/proxmox-bot/.claude/settings.json` | The session's tool list |
+| No sudo, even though the user has it | `NoNewPrivileges=yes` in the unit applies to the whole process tree | `grep NoNewPrivs /proc/<pid>/status` shows `1` |
+| No Gmail, Drive, Calendar, Indeed or Docs | `"disableClaudeAiConnectors": true` in the same settings file. A claude.ai login brings these into the session otherwise | Only `mcp-logs-plugin-discord-discord` and `mcp-logs-proxmox` get a log for the session |
+| No Discord attachments | `download_attachment` denied in the same settings file | |
+| No SSH keys or GitHub login on the host | Removed | `ls ~/.ssh` shows only `authorized_keys` |
+
+**Don't deny `Read` in the settings file.** It stops `CLAUDE.md` from loading, and with it the bot's safety rules. The pane warns `Instruction file not loaded`.
+
+**`claude setup-token` doesn't work here.** Channels refuse that token: the pane says `Channels are not currently available`, while the MCP servers still start and hold a Discord connection, so the bot looks healthy and drops every message. Channels need a claude.ai login or a Console API key.
+
 ## Health check
 
 | Condition | Action |
