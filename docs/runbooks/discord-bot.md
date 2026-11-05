@@ -76,6 +76,15 @@ ssh -t bots 'sudo -u discord-bot -H env PATH=/home/discord-bot/.npm-global/bin:/
 ssh bots 'sudo -iu discord-bot systemctl --user restart claude-discord'
 ```
 
+**Reset the Discord token.** Click **Reset Token** on the bot's page in the Discord Developer Portal, then run this from `ops`, in your own terminal, and paste once. The prompt is hidden, so nothing shows when you paste, and pasting more than once saves an invalid token:
+
+```bash
+ssh -t bots 'sudo -u discord-bot -H bash -c "umask 077; read -rsp \"New token: \" t; echo; printf \"DISCORD_BOT_TOKEN=%s\n\" \"\$t\" > ~/.claude/channels/discord/.env"'
+ssh bots 'sudo -iu discord-bot systemctl --user restart claude-discord'
+```
+
+Don't use `/discord:configure` to do this, because it may leave the token in the Claude history files. A valid token is about 72 characters.
+
 To work on the bot without the check restarting it, stop the service: `systemctl --user stop claude-discord`. To see the screen live, use `tmux -L claude-discord attach`, and detach with `Ctrl-b d`.
 
 ## Rebuild
