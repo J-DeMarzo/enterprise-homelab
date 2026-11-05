@@ -38,7 +38,7 @@ The bot takes instructions from chat, so it gets only what its job needs. Proxmo
 
 `systemctl` only sees the tmux server. Claude keeps running inside it even when the bot can't work, and `Restart=on-failure` never fires. Two failures look identical from systemd, and both had happened by 2026-11-05, after the bot had been silent for 19 days:
 
-- **MCP servers don't retry.** They get one attempt at startup. On 2026-10-17 `ragnar` rebooted, and the bot started at 22:38:22, before the network was online at 22:38:55. Both servers failed on DNS and never came back. The old `After=network-online.target` did nothing, because that target only exists in the system manager. The unit now waits for DNS in `ExecStartPre`.
+- **MCP servers don't retry.** They get one attempt at startup. On 2026-10-17 `ragnar` rebooted, and the bot started at 22:38:22, before the network was online at 22:38:55. Both servers failed on DNS and never came back. The old `After=network-online.target` did nothing, because that target only exists in the system manager. The unit now waits for DNS in `ExecStartPre`. *Evidence (2026-11-05):* with DNS blocked, restarting the bot left the service `activating`, with no Claude process, for the full 30 seconds. Once DNS returned, both servers connected first time with no DNS errors. A real reboot also came up clean, though the network was ready in about a second, so that alone doesn't test the wait.
 - **The login expires.** A running session can't recover once it lapses, and a restart doesn't help.
 
 ## Health check
