@@ -16,6 +16,7 @@ Everything lives in `/home/discord-bot`, mode 750. The `demarzo` admin login hol
 | `.credentials.json` | `~/.claude/` | The Claude login. It lasts about 4 weeks and needs a browser to renew |
 | `.env`, `access.json` | `~/.claude/channels/discord/` | Discord bot token and sender allowlist |
 | `config.json` | `~/.config/proxmox-mcp/` | Proxmox targets and token |
+| `npm-cache-clean.timer` + `.service` (system units) | `/etc/systemd/system/` | Clear every user's npm download cache, weekly on Sunday around 04:00 |
 
 Files: [`scripts/discord-bot/`](../../scripts/discord-bot/). Lingering is on for `discord-bot`, so the units run with no one logged in.
 
@@ -41,6 +42,10 @@ The bot takes instructions from chat, so it gets only what its job needs. Proxmo
 - **MCP servers don't retry.** They get one attempt at startup. On 2026-10-17 `ragnar` rebooted, and the bot started at 22:38:22, before the network was online at 22:38:55. Both servers failed on DNS and never came back. The old `After=network-online.target` did nothing, because that target only exists in the system manager. The unit now waits for DNS in `ExecStartPre`. *Evidence (2026-11-05):* with DNS blocked, restarting the bot left the service `activating`, with no Claude process, for the full 30 seconds. Once DNS returned, both servers connected first time with no DNS errors. A real reboot also came up clean, though the network was ready in about a second, so that alone doesn't test the wait.
 - **The login expires.** A running session can't recover once it lapses, and a restart doesn't help.
 
+A third failure looked healthy for hours on 2026-11-17:
+
+- **The disk fills.** Claude Code updates itself through npm, and npm keeps every downloaded version (100–150 MB each) in `~/.npm/_cacache` with no limit. By November the caches held 5.4 GB of the 8 GB disk, and the disk filled. At 17:06 an update moved the old Claude install aside, then couldn't write the new one, which left no `claude` command. The running session kept working from memory, so the bot still answered, but the health check crashed every run trying to save its state and couldn't send its alerts. ZFS reports a full container disk as `Disk quota exceeded` (EDQUOT), not "no space left". The first restart failed, because there was no `claude` to start. Now a weekly timer clears the caches, and the health check alerts at 85% full and survives a failed write.
+
 ## Health check
 
 | Condition | Action |
@@ -48,6 +53,7 @@ The bot takes instructions from chat, so it gets only what its job needs. Proxmo
 | Logged out | Alert. No restart, because it wouldn't help |
 | Login expires within 3 days, or its state can't be read | Alert |
 | Discord server, its connection, or the Proxmox server missing on 2 runs in a row | Restart (at most once per 30 minutes) and alert |
+| Root disk 85% full or more | Alert |
 | Service in any state other than `active` or `inactive` | Alert. systemd handles the restart |
 | Service `inactive` | Nothing. It was stopped on purpose |
 
@@ -85,6 +91,16 @@ ssh bots 'sudo -iu discord-bot systemctl --user restart claude-discord'
 
 Don't use `/discord:configure` to do this, because it may leave the token in the Claude history files. A valid token is about 72 characters.
 
+**Disk full, or the bot won't start after an update.** Check `df -h /`. Free space, then check the install. If `~/.npm-global/bin/claude` is missing, or there's a `.claude-code-*` folder in `~/.npm-global/lib/node_modules/@anthropic-ai/`, an update broke halfway. As `demarzo`, run `sudo systemctl start npm-cache-clean.service` to clear every user's npm cache. Then, as `discord-bot`:
+
+```bash
+rm -rf ~/.npm-global/lib/node_modules/@anthropic-ai/.claude-code-* ~/.npm-global/bin/.claude-*
+npm install -g @anthropic-ai/claude-code && claude --version
+systemctl --user reset-failed claude-discord; systemctl --user restart claude-discord
+```
+
+Don't restart the bot until `claude --version` works. The running session is the only copy still working.
+
 To work on the bot without the check restarting it, stop the service: `systemctl --user stop claude-discord`. To see the screen live, use `tmux -L claude-discord attach`, and detach with `Ctrl-b d`.
 
 ## Rebuild
@@ -115,5 +131,7 @@ Then copy the files from `scripts/discord-bot/` to these paths:
 ```bash
 systemctl --user daemon-reload && systemctl --user enable --now claude-discord.service claude-discord-health.timer
 ```
+
+As `demarzo`, copy `npm-cache-clean.service` and `npm-cache-clean.timer` to `/etc/systemd/system/` (mode 644), then `sudo systemctl daemon-reload && sudo systemctl enable --now npm-cache-clean.timer`.
 
 Check: the plugin log says `Channel notifications registered`, the bot answers a Discord message, and `systemctl --user start claude-discord-health` logs `healthy`.

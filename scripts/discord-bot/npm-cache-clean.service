@@ -1,0 +1,10 @@
+[Unit]
+Description=Clear the npm download caches on bots
+# Claude Code updates itself through npm, and npm keeps every downloaded version
+# (100-150 MB each) in ~/.npm/_cacache forever. On 2026-11-17 those caches filled
+# the 8 GB disk. Deleting the cache is what `npm cache clean --force` does; nothing
+# installed lives there.
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'rm -rf /home/*/.npm/_cacache'

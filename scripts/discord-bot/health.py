@@ -7,6 +7,8 @@ its MCP servers died or its login lapsed. So this looks at what the bot needs:
 - the Claude login is valid (a restart can't fix this one, so it only alerts)
 - the Discord and Proxmox MCP servers are running under the Claude process
 - the Discord server holds an open connection
+- the root disk has room. When it filled on 2026-11-17, a Claude update broke
+  halfway and the bot couldn't restart, so this alerts well before that.
 
 Missing processes on two runs in a row trigger a restart, at most one per
 RESTART_COOLDOWN. Problems are logged to the journal and sent as a Discord DM
@@ -32,6 +34,7 @@ FAILS_BEFORE_RESTART = 2
 RESTART_COOLDOWN = 30 * 60
 REALERT = 6 * 3600
 LOGIN_WARN_DAYS = 3
+DISK_WARN_PERCENT = 85
 RENEW = (
     "On ops, run: `ssh -t bots 'sudo -u discord-bot -H "
     "env PATH=/home/discord-bot/.npm-global/bin:/usr/bin:/bin claude auth login'`."
@@ -101,6 +104,18 @@ def login_problem():
     return None
 
 
+def disk_problem():
+    """Returns a message if the root filesystem is nearly full, otherwise None."""
+    disk = os.statvfs("/")
+    used = 100 - disk.f_bavail * 100 / disk.f_blocks
+    if used >= DISK_WARN_PERCENT:
+        return (
+            f"the bots disk is {used:.0f}% full. When it fills, updates break and the bot "
+            "can't restart. See the runbook."
+        )
+    return None
+
+
 def descendants(root):
     """Maps each process under root to its command line."""
     children, commands = {}, {}
@@ -154,7 +169,11 @@ def main():
     alerted = state.get("alerted", {})
     problems = {}
 
-    service = stdout("systemctl", "--user", "is-active", SERVICE)
+    disk = disk_problem()
+    if disk:
+        problems["disk"] = disk
+
+    service =stdout("systemctl", "--user", "is-active", SERVICE)
     if service == "inactive":
         print("service is stopped on purpose, nothing to check")
         return
@@ -190,10 +209,13 @@ def main():
     if not problems and not fails:
         print("healthy")
 
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text(json.dumps(
-        {"fails": fails, "last_restart": last_restart, "alerted": alerted}
-    ))
+    try:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text(json.dumps(
+            {"fails": fails, "last_restart": last_restart, "alerted": alerted}
+        ))
+    except OSError as error:  # A full disk must not stop the alerts above.
+        print(f"could not save state: {error}")
 
 
 if __name__ == "__main__":

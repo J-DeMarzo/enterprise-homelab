@@ -1,0 +1,10 @@
+[Unit]
+Description=Clear the npm download caches on bots every week
+
+[Timer]
+OnCalendar=Sun 04:00
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
